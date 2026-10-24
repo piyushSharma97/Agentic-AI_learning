@@ -14,6 +14,7 @@
 # In[ ]:
 
 
+# Arithmetic operators calculate numeric results; / gives a float while // drops the fractional part.
 x = 15
 y = 4
 print('x + y = ',x+y)
@@ -29,6 +30,7 @@ print('x ** y = ',x**y)
 # In[ ]:
 
 
+# Comparison operators compare values and produce True or False.
 x = 10
 y = 12
 print('x > y  is',x>y)
@@ -47,6 +49,7 @@ print('x <= y is',x<=y)
 # In[2]:
 
 
+# Boolean operators combine truth values: and needs both, or needs either, and not reverses one.
 x = True
 y = False
 print('x and y is',x and y)
@@ -54,7 +57,7 @@ print('x or y is',x or y)
 print('not x is',not x)
 
 
-# Bitwise operators
+# Bitwise operators work on the binary digits of integers rather than on logical True/False values.
 # &	Bitwise AND	x& y = 0 (0000 0000)
 # |	Bitwise OR	x | y = 14 (0000 1110)
 # ~	Bitwise NOT	~x = -11 (1111 0101)
@@ -62,7 +65,7 @@ print('not x is',not x)
 # >>	Bitwise right shift	x>> 2 = 2 (0000 0010)
 # <<	Bitwise left shift	x<< 2 = 42 (0010 1000)
 
-# Assignment operators
+# Assignment operators update a variable, often by applying an operation to its current value.
 # 
 # =	Simple Assignment	x = 5	x = 5
 # +=	Addition Assignment	x += 5	x = x + 5
@@ -150,3 +153,31 @@ val_lshift = 3
 val_lshift <<= 2
 print(f"val_lshift: {val_lshift}")  # Output: 12
 
+# ============================================================
+# REVISION NOTES — 1.3Operaaator.py
+# ============================================================
+#
+# WHAT THIS FILE DOES:
+# This file demonstrates arithmetic, comparison, logical, bitwise, and assignment operators in Python.
+# The print statements show the values produced by representative operations.
+#
+# KEY CONCEPTS USED:
+# • Arithmetic operators: perform calculations such as addition, division, remainder, and powers.
+# • Comparisons and logic: compare values and combine True/False conditions.
+# • Bitwise operators: manipulate the binary representation of integer values.
+#
+# HOW IT CONNECTS TO THE PROJECT:
+# This is an introductory Python exercise that builds the language basics used by later AI and LangChain examples.
+#
+# THINGS TO REMEMBER:
+# • Division with / returns a float, while // performs floor division.
+# • Assignment operators such as += update the existing variable.
+# • Bitwise operations act on integer bits, not on the meaning of a boolean condition.
+#
+# COMMON MISTAKES TO AVOID:
+# • Confusing == (comparison) with = (assignment).
+# • Assuming // always rounds toward zero; it floors the result.
+#
+# IF YOU FORGET HOW THIS WORKS, START HERE:
+# Compare the printed examples for / and //, then trace how each assignment operator changes its variable.
+# ============================================================
