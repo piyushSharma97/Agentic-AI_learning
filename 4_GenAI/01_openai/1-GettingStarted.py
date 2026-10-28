@@ -17,14 +17,14 @@ load_dotenv()
 
 # Create the chat model client; credentials are read from the configured environment.
 llm=ChatOpenAI(model="gpt-4o")
-print(llm)
+print("LLM=>",llm)
 
 ## Input and get response form LLM
 # invoke sends a prompt directly to the model and returns a message object.
 result=llm.invoke("What is generative AI?")
 
-print(result.content)
-print(type(result))
+print("result content =>",result.content)
+print("type of",type(result))
 
 # Create a reusable prompt
 # A prompt template separates reusable instructions from the question supplied for each call.
@@ -55,7 +55,7 @@ response=chain.invoke({"input":"Can you tell me about HuggingFace?"})
 print("chain=>",response)
 
 
-type(response)
+print("Type of response=>",type(response))
 
 
 ## stroutput Parser
@@ -64,9 +64,9 @@ type(response)
 # The parser changes an AIMessage into its plain-text content for simpler display and downstream use.
 output_parser=StrOutputParser()
 chain=prompt|llm|output_parser
-
-response=chain.invoke({"input":"Can you tell me about Langsmith?"})
-print(response)
+print("Chain=>",chain)
+response_chain=chain.invoke({"input":"Can you tell me about Langsmith?"})
+print("response_chain=>",response_chain)
 print(type(response))  # <class 'str'>
 
 # ============================================================
