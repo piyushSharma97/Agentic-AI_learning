@@ -1,107 +1,145 @@
 """
-Embedding Techniques
-Converting text into vectors
+Text Embeddings Deep-Dive: OpenAI Embeddings & Vector Search
+
+What is an Embedding?
+An embedding is a numerical vector (a list of floating-point numbers, e.g., [0.014, -0.052, 0.089, ...])
+that represents the semantic meaning of human text in high-dimensional geometric space.
+
+Key Principles of Embeddings:
+1. Semantic Proximity: Phrases with similar meanings have vectors that point in nearly the same direction
+   (high cosine similarity or low Euclidean distance), even if they share zero vocabulary!
+   Example: "The puppy barked" and "A small dog made a noise" will have very close vectors.
+2. High Dimensionality: Traditional OpenAI models (text-embedding-ada-002) produce 1536 dimensions.
+   OpenAI's latest `text-embedding-3-large` generates 3072 dimensions by default.
+3. Matryoshka Embeddings (Dimension Truncation):
+   OpenAI's third-generation models support the `dimensions` parameter (e.g. 1024 or 512).
+   This allows you to reduce vector size by 66% to save disk space and RAM with negligible loss in retrieval accuracy!
 """
-# OpenAIEmbeddings converts text into vectors using an OpenAI embedding model.
-from langchain_openai import OpenAIEmbeddings
-# os reads the API credential from the process environment.
+
 import os
-# Path resolves the shared speech source relative to this file.
 from pathlib import Path
-# python-dotenv loads local environment values such as the OpenAI API key.
 from dotenv import load_dotenv
-# TextLoader reads the speech source into LangChain documents.
+
+# OpenAIEmbeddings connects LangChain to OpenAI's embedding API endpoints.
+from langchain_openai import OpenAIEmbeddings
+
+# TextLoader loads source documents into LangChain Document objects.
 from langchain_community.document_loaders import TextLoader
-# RecursiveCharacterTextSplitter divides long documents into smaller, overlapping passages.
+
+# RecursiveCharacterTextSplitter divides long documents into overlapping passages.
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-# Chroma stores document vectors and searches for similar passages.
+
+# Chroma is our vector database that indexes embedding vectors for rapid similarity retrieval.
 from langchain_community.vectorstores import Chroma
-# Load environment configuration before constructing OpenAI clients.
+
+# --------------------------------------------------
+# 1. Environment & API Key Configuration
+# --------------------------------------------------
+
 load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("Warning: OPENAI_API_KEY is not set in environment or .env file.")
 
+# --------------------------------------------------
+# 2. Creating Full-Dimension OpenAI Embeddings (3072 dims)
+# --------------------------------------------------
 
-# The embedding client needs a valid API key in the process environment.
-os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
+# text-embedding-3-large defaults to 3072 floating point values per vector
+embeddings_default = OpenAIEmbeddings(model="text-embedding-3-large")
 
-# This model converts text to vectors; the dimensions option below demonstrates a smaller vector size.
-embeddings=OpenAIEmbeddings(model="text-embedding-3-large")
+text = "This is a tutorial on OPENAI embedding"
 
+# embed_query() is designed to embed a SINGLE query string -> returns list[float]
+query_result = embeddings_default.embed_query(text)
 
-text="This is a tutorial on OPENAI embedding"
-query_result=embeddings.embed_query(text)
-print("length query_result =>",len(query_result))
-print(f"type {type(query_result)}")
-print(f"First few vectors {query_result[1:7]}")
+print(f"Default embedding model: text-embedding-3-large")
+print(f"Vector Dimensions: {len(query_result)}")  # 3072
+print(f"Data Type: {type(query_result)}")           # <class 'list'>
+print(f"First 5 vector coordinates: {query_result[:5]}")
 
+# --------------------------------------------------
+# 3. Custom Dimensions via Matryoshka Learning (1024 dims)
+# --------------------------------------------------
 
-# OpenAI's supported dimensions option can reduce vector size for this model.
-embeddings_1024=OpenAIEmbeddings(model="text-embedding-3-large",dimensions=1024)
+# By passing dimensions=1024, OpenAI truncates the vector without retraining.
+# This cuts database storage costs in third while maintaining ~98% of search accuracy!
+embeddings_1024 = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1024)
 
+query_result_1024 = embeddings_1024.embed_query(text)
 
-query_result=embeddings_1024.embed_query(text)
-print("length query_result 2 =>",len(query_result))
-print(f"type {type(query_result)}")
-print(f"First few vectors {query_result[1:7]}")
+print(f"\nCustom embedding model (Truncated):")
+print(f"Vector Dimensions: {len(query_result_1024)}")  # 1024
+print(f"First 5 vector coordinates: {query_result_1024[:5]}")
 
-# Build a retrieval dataset by loading the source and splitting it into overlapping passages.
-## Vector Embedding And Vector StoreDB
-file_path = (
-    Path(__file__).resolve().parent.parent.parent
-    / "extra"
-    / "speech.txt"
-)
+# --------------------------------------------------
+# 4. Building an End-to-End Vector Index with ChromaDB
+# --------------------------------------------------
 
-print("Resolved path:", file_path)
-print("File exists:", file_path.exists())
-
+# Resolve speech.txt path robustly
+file_path = Path(__file__).resolve().parent.parent.parent / "extra" / "speech.txt"
 if not file_path.exists():
-    raise FileNotFoundError(f"File not found: {file_path}")
+    file_path = Path(__file__).resolve().parent.parent / "04_Data Trnasformer" / "speech.txt"
 
+print(f"\nLoading source speech from: {file_path}")
 loader = TextLoader(str(file_path), encoding="utf-8")
-docs=loader.load()
+docs = loader.load()
 
-# Small chunks make this example easy to inspect; overlap retains some text between neighboring chunks.
-text_splitter=RecursiveCharacterTextSplitter(chunk_size=70,chunk_overlap=20)
-final_documents=text_splitter.split_documents(docs)
+# Split speech into 70-character chunks with 20-character overlap
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=70, chunk_overlap=20)
+final_documents = text_splitter.split_documents(docs)
+print(f"Generated {len(final_documents)} chunks for indexing.")
 
-# chroma db
-# Chroma embeds and indexes the passages so a query can retrieve semantically similar text.
-db=Chroma.from_documents(final_documents,embeddings_1024)
-print(f"db=>{db}")
+# --------------------------------------------------
+# 5. Indexing Documents and Executing Semantic Search
+# --------------------------------------------------
 
+# Chroma.from_documents takes chunks, calls embeddings_1024.embed_documents(),
+# and builds an in-memory vector index.
+db = Chroma.from_documents(final_documents, embeddings_1024)
 
-### Retrieve the results from query vectorstore db
-query="It will be all the easier for us to conduct ourselves as belligerents"
-# Search the vector store for passages whose embeddings are close to the query meaning.
-retrieved_results=db.similarity_search(query)
-print(f" retrieved_results => {retrieved_results}")
-print("Length of retrieved_results",len(retrieved_results))
+query = "It will be all the easier for us to conduct ourselves as belligerents"
+print(f"\nSearching for semantic match for query:\n  \"{query}\"")
+
+# similarity_search embeds the query string and retrieves the most geometrically similar chunks
+retrieved_results = db.similarity_search(query, k=2)
+
+print(f"Number of retrieved results: {len(retrieved_results)}")
+for i, res in enumerate(retrieved_results, start=1):
+    print(f"\nMatch {i}:\n  \"{res.page_content}\"")
 
 # ============================================================
 # REVISION NOTES — embedding.py
 # ============================================================
 #
 # WHAT THIS FILE DOES:
-# This file demonstrates OpenAI text embeddings, including inspecting vector dimensions and using a custom dimension setting.
-# It then loads a speech, splits it into chunks, indexes them in Chroma, and retrieves passages related to a query.
+# This script teaches the mechanics of OpenAI embeddings:
+# 1. How text is mapped to dense vectors using OpenAI's `text-embedding-3-large`.
+# 2. How to use dimension reduction (`dimensions=1024`) to save storage and compute.
+# 3. How to feed generated embeddings into ChromaDB to perform semantic similarity search.
 #
 # KEY CONCEPTS USED:
-# • Embedding vector: numeric values representing text meaning for similarity comparisons.
-# • Dimensions: the number of values in each vector, affecting storage size and model compatibility.
-# • Vector store: an index that stores vectors and retrieves associated source text by similarity.
+# • Embeddings: Dense vectors of real numbers capturing the semantic semantics of text.
+# • Matryoshka Embeddings: Modern embedding technique where the most important semantic features
+#   are packed into the initial dimensions, allowing safe truncation (e.g. 3072 -> 1024).
+# • embed_query vs embed_documents:
+#   - embed_query(str): Formats and embeds a single question/query string.
+#   - embed_documents(list[str]): Batch embeds a list of document chunks.
+# • Similarity Search: Finding nearest vectors using cosine similarity or Euclidean distance.
 #
 # HOW IT CONNECTS TO THE PROJECT:
-# This is the OpenAI embedding and Chroma retrieval example, complementing the Hugging Face and Ollama embedding examples.
+# Embeddings are the bridge between raw text and vector databases (Chroma, FAISS).
+# Without embeddings, semantic search and RAG would be impossible.
 #
 # THINGS TO REMEMBER:
-# • An OpenAI API key is needed to generate embeddings.
-# • Query and indexed text must use compatible embedding models and dimensions.
-# • Similarity search returns source passages, not a natural-language answer.
+# • OpenAI embeddings require internet access and a funded API key.
+# • You cannot search a 1024-dimension index using a 3072-dimension query vector (dimension mismatch error).
+# • Always use the exact same embedding model for indexing and querying!
 #
 # COMMON MISTAKES TO AVOID:
-# • Comparing vectors with different dimensions or models.
-# • Assuming vector values themselves explain the text's meaning in human-readable form.
+# • Hardcoding API keys in scripts instead of using `load_dotenv()`.
+# • Mixing embeddings from different providers (e.g. indexing with OpenAI and searching with Ollama).
 #
 # IF YOU FORGET HOW THIS WORKS, START HERE:
-# Follow the speech text from splitting through Chroma indexing and into similarity_search.
+# Look at `query_result = embeddings.embed_query("text")` — it produces a list of floats representing meaning.
 # ============================================================

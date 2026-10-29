@@ -1,24 +1,36 @@
-# os reads and sets process environment variables for optional LangSmith tracing.
-import os
+"""
+Interactive Web Chatbot: Streamlit & Local Ollama (Gemma)
 
-# Streamlit provides the web interface and caches the reusable model chain.
+What you will learn in this application:
+1. Streamlit Execution Model: Why Streamlit reruns scripts from top-to-bottom on every user interaction.
+2. Session State Management: Using st.session_state to persist conversation history across UI reruns.
+3. Resource Caching: Using @st.cache_resource to initialize the LLM and chain once and reuse them.
+4. Local AI Inference: Connecting Streamlit UI to a 100% offline, local Ollama model (Gemma).
+5. Observability with LangSmith: Optional tracing and monitoring of every model invocation.
+6. Error Handling: Gracefully notifying users if local AI daemons are offline.
+"""
+
+import os
 import streamlit as st
-# python-dotenv loads local configuration such as API keys from a .env file.
 from dotenv import load_dotenv
-# ChatOllama connects LangChain to a locally running Ollama chat model.
+
+# ChatOllama connects LangChain to locally running Ollama chat models.
 from langchain_ollama import ChatOllama
-# ChatPromptTemplate formats the system and user messages sent to the model.
+
+# ChatPromptTemplate builds structured message templates.
 from langchain_core.prompts import ChatPromptTemplate
-# StrOutputParser extracts model output as plain text for display in the app.
+
+# StrOutputParser extracts clean plain text from model responses.
 from langchain_core.output_parsers import StrOutputParser
 
 # --------------------------------------------------
-# 1. Load environment variables
+# 1. Environment & Optional Observability (LangSmith)
 # --------------------------------------------------
 
-# Load local environment settings before checking whether tracing is configured.
 load_dotenv()
-# Enable LangSmith tracing only when an API key exists
+
+# If a LangSmith API key is provided in .env, enable automated tracing.
+# This logs every prompt, latency metric, and token count to the LangSmith dashboard.
 langsmith_api_key = os.getenv("LANGCHAIN_API_KEY")
 if langsmith_api_key:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -28,92 +40,99 @@ if langsmith_api_key:
     )
 
 # --------------------------------------------------
-# 2. Configure Streamlit
+# 2. Streamlit Web Page Configuration
 # --------------------------------------------------
 
-# Set the browser tab title, icon, and centered layout before drawing the app.
+# Must be the first Streamlit command called in your script.
 st.set_page_config(
     page_title="Gemma AI Chat",
     page_icon="🤖",
     layout="centered",
 )
 
-st.title("🤖 LangChain Chat with Gemma")
-st.caption("Ask questions using a locally running Ollama model.")
+st.title("🤖 LangChain Chat with Local Gemma")
+st.caption("Ask questions powered completely by your local computer via Ollama — zero cloud cost, 100% private.")
 
 # --------------------------------------------------
-# 3. Initialize the LLM and chain
+# 3. Model & Pipeline Initialization (Cached)
 # --------------------------------------------------
 
-# Build and cache the prompt-to-model-to-text pipeline; it takes no arguments and returns a runnable chain.
+# CRITICAL STREAMLIT CONCEPT:
+# Without `@st.cache_resource`, Streamlit would re-create `ChatOllama` and rebuild the chain
+# on EVERY SINGLE user input, creating massive performance overhead.
+# `@st.cache_resource` creates the chain ONCE and caches the object in memory across reruns!
 @st.cache_resource
 def create_chain():
-    # The system message describes the assistant; {question} is filled in for each user turn.
+    """Builds and caches the prompt -> model -> parser pipeline."""
     prompt = ChatPromptTemplate.from_messages([
-          (
-                "system",
-                "You are a helpful, friendly assistant. "
-                "Answer clearly and accurately. "
-                "If you are unsure, say so.",
-            ),
-            ("human", "{question}"),
+        (
+            "system",
+            "You are a helpful, friendly assistant. "
+            "Answer clearly and accurately. "
+            "If you are unsure, say so.",
+        ),
+        ("human", "{question}"),
     ])
 
-    # Connect to the local Gemma model; a lower temperature makes answers less random.
+    # Connect to local Ollama running gemma:2b
     llm = ChatOllama(
         model="gemma:2b",
-        temperature=0.3
+        temperature=0.3,  # Low temperature = focused, consistent answers
     )
-    # Compose prompt, model, and parser into one pipeline that returns plain text.
-    output_parser = StrOutputParser
-    return prompt|llm|output_parser
 
-# Reuse the cached chain so the model resources are not rebuilt on each Streamlit rerun.
+    # Compose into an LCEL pipeline
+    output_parser = StrOutputParser()
+    return prompt | llm | output_parser
+
 chain = create_chain()
+
 # --------------------------------------------------
-# 4. Maintain conversation history
+# 4. Session State & Chat History Persistence
 # --------------------------------------------------
 
-# Session state survives Streamlit reruns, allowing previous turns to remain visible.
+# In Streamlit, normal Python variables reset when the page reruns.
+# `st.session_state` acts like a dictionary that persists for the user's active browser session.
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Re-render each saved message so the conversation stays on screen after a rerun.
-for message in   st.session_state.messages:
+# Re-render existing chat history on every rerun so previous messages stay visible
+for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-
 # --------------------------------------------------
-# 5. Accept user input and generate a response
+# 5. User Input Handling & Streaming/Generating Output
 # --------------------------------------------------
 
-# chat_input returns user text when submitted, or a false value when there is no new turn.
+# st.chat_input renders an input box anchored at the bottom of the screen.
 question = st.chat_input("What would you like to ask?")
+
 if question:
-    # Save and display the user's turn before invoking the model.
+    # 1. Append user's message to session_state
     st.session_state.messages.append(
         {"role": "user", "content": question}
     )
 
+    # 2. Display the user message immediately in the UI
     with st.chat_message("user"):
         st.markdown(question)
 
-    # Show progress while the local model generates a reply; report runtime failures in the UI.
+    # 3. Generate response using local model inside a loading spinner
     try:
         with st.chat_message("assistant"):
             with st.spinner("Gemma is thinking..."):
                 response = chain.invoke({"question": question})
                 st.markdown(response)
 
+        # 4. Save assistant reply to session_state so it persists on subsequent turns
         st.session_state.messages.append(
             {"role": "assistant", "content": response}
         )
 
     except Exception as error:
         st.error(
-            "Unable to generate a response. "
-            "Check that Ollama is running and the model is installed."
+            "Unable to connect to Ollama. "
+            "Please ensure Ollama is running in the background and 'gemma:2b' is installed."
         )
         st.caption(f"Error details: {error}")
 
@@ -122,26 +141,30 @@ if question:
 # ============================================================
 #
 # WHAT THIS FILE DOES:
-# This Streamlit app provides a browser-based chat interface for a locally running Gemma model through Ollama.
-# It keeps the conversation in session state, sends each new question through a LangChain pipeline, and displays the text response.
+# This file provides a full-featured graphical chat interface in the browser using Streamlit,
+# connected to a locally hosted Ollama model (`gemma:2b`). It manages UI state,
+# renders conversational bubbles, caches expensive model initializations, and handles runtime errors.
 #
 # KEY CONCEPTS USED:
-# • Prompt template: a reusable structure that combines system instructions with the current user question.
-# • Model pipeline: connecting the prompt, chat model, and output parser so data flows through them in order.
-# • Session state: Streamlit storage that preserves conversation messages across app reruns.
+# • Streamlit: Rapid Python framework for turning data/AI scripts into interactive web applications.
+# • st.session_state: Key-value dictionary that preserves variables across Streamlit's script reruns.
+# • @st.cache_resource: Decorator ensuring heavy objects (like LLM clients or database connections) are only created once.
+# • ChatOllama: LangChain wrapper connecting to local Ollama daemons.
+# • st.chat_input & st.chat_message: Modern Streamlit UI primitives for chat dialogs.
 #
 # HOW IT CONNECTS TO THE PROJECT:
-# This is the direct-chat example in 4_GenAI/2_ollama; Intro.py in the same folder demonstrates retrieval-augmented answers grounded in a web page.
+# This file demonstrates building user-facing GUI applications around the LLM pipelines
+# developed throughout the course.
 #
 # THINGS TO REMEMBER:
-# • Ollama must be running locally and gemma:2b must be installed.
-# • LangSmith tracing is optional and is enabled only when LANGCHAIN_API_KEY is available.
-# • Streamlit reruns the script after user interactions, so session_state preserves and redraws the chat history.
+# • Run this application in terminal with: `streamlit run app.py` (do NOT run with `python app.py`).
+# • Ollama must be active and serving at http://localhost:11434 with `gemma:2b` pulled.
 #
 # COMMON MISTAKES TO AVOID:
-# • Treating StrOutputParser as an already-created parser instance; this file composes the parser class into its pipeline.
-# • Expecting the chat history to persist after the app process ends; session state is for the active Streamlit session.
+# • Trying to maintain chat history in a local variable like `messages = []` instead of `st.session_state.messages`.
+# • Forgetting `@st.cache_resource`, causing slow model re-initializations on every message.
 #
 # IF YOU FORGET HOW THIS WORKS, START HERE:
-# Follow chain.invoke({"question": question}): the question passes through the prompt, local model, and output parser.
+# 1. Look at `chain = create_chain()` (cached model pipeline).
+# 2. Look at how `st.session_state.messages` preserves the conversation history.
 # ============================================================
