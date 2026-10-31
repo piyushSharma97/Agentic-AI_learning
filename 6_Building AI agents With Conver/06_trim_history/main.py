@@ -9,6 +9,21 @@ What you will learn in this lesson:
 5. Best practice: preserving critical system instructions while trimming dynamic conversation history.
 """
 
+# ============================================================
+# LANGCHAIN: TRIM HISTORY - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Trim history — keep recent messages, then ask the model
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 import os
 from dotenv import load_dotenv
 
@@ -29,60 +44,99 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# 2. Simulated Long Conversation History
-# --------------------------------------------------
 
-# A conversation with multiple turns:
-# As dialogues stretch to dozens or hundreds of messages, passing everything becomes infeasible.
-messages = [
-    SystemMessage(content="You are a concise assistant."),
-    HumanMessage(content="My favorite ice cream is vanilla."),
-    AIMessage(content="Vanilla is a classic choice."),
-    HumanMessage(content="I also enjoy hiking."),
-    AIMessage(content="Hiking is a great outdoor activity."),
-    HumanMessage(content="What is 2 + 2?"),
-    AIMessage(content="4."),
-    HumanMessage(content="What is my favorite ice cream?"),
-]
+# ============================================================
+# EXAMPLE 1: TRIM HISTORY
+# USE CASE: BOUND THE CONTEXT WINDOW, THEN ANSWER
+# ============================================================
 
-# Separate the system message from user/assistant chat history.
-# System prompts contain rules/persona and should never be accidentally trimmed away.
-system_message = messages[0]
-conversation = messages[1:]
+def example_1_trim_history():
 
-# --------------------------------------------------
-# 3. Configuring trim_messages
-# --------------------------------------------------
+    print("\n========== EXAMPLE 1: TRIM HISTORY ==========")
 
-# trim_messages parameters explained:
-# • max_tokens: Target maximum tokens to keep.
-# • strategy="last": Keeps the most recent messages (sliding window) and drops older turns.
-# • token_counter=model: Uses the model instance to accurately count tokens matching its tokenizer.
-# • include_system=False: Excludes system messages from this trim operation (we prepend it separately).
-# • allow_partial=False: Drops whole messages rather than cutting a message halfway through.
-# • start_on="human": Guarantees the resulting slice begins with a human message, preventing
-#   orphaned AI messages at the head of the context.
-trimmed_conversation = trim_messages(
-    conversation,
-    max_tokens=350,
-    strategy="last",
-    token_counter=model,
-    include_system=False,
-    allow_partial=False,
-    start_on="human",
-)
+    # --------------------------------------------------
+    # 2. Simulated Long Conversation History
+    # --------------------------------------------------
 
-# --------------------------------------------------
-# 4. Inspecting Trimming Results & Invoking
-# --------------------------------------------------
+    # A conversation with multiple turns:
+    # As dialogues stretch to dozens or hundreds of messages, passing everything becomes infeasible.
+    messages = [
+        SystemMessage(content="You are a concise assistant."),
+        HumanMessage(content="My favorite ice cream is vanilla."),
+        AIMessage(content="Vanilla is a classic choice."),
+        HumanMessage(content="I also enjoy hiking."),
+        AIMessage(content="Hiking is a great outdoor activity."),
+        HumanMessage(content="What is 2 + 2?"),
+        AIMessage(content="4."),
+        HumanMessage(content="What is my favorite ice cream?"),
+    ]
 
-print("Messages before trimming:", len(conversation))
-print("Messages after trimming:", len(trimmed_conversation))
+    # Separate the system message from user/assistant chat history.
+    # System prompts contain rules/persona and should never be accidentally trimmed away.
+    system_message = messages[0]
+    conversation = messages[1:]
 
-# Re-assemble the system message with the trimmed conversation slice using list unpacking (*).
-response = model.invoke([system_message, *trimmed_conversation])
-print("\nAssistant:", response.content)
+    # --------------------------------------------------
+    # 3. Configuring trim_messages
+    # --------------------------------------------------
+
+    # trim_messages parameters explained:
+    # • max_tokens: Target maximum tokens to keep.
+    # • strategy="last": Keeps the most recent messages (sliding window) and drops older turns.
+    # • token_counter=model: Uses the model instance to accurately count tokens matching its tokenizer.
+    # • include_system=False: Excludes system messages from this trim operation (we prepend it separately).
+    # • allow_partial=False: Drops whole messages rather than cutting a message halfway through.
+    # • start_on="human": Guarantees the resulting slice begins with a human message, preventing
+    #   orphaned AI messages at the head of the context.
+    trimmed_conversation = trim_messages(
+        conversation,
+        max_tokens=350,
+        strategy="last",
+        token_counter=model,
+        include_system=False,
+        allow_partial=False,
+        start_on="human",
+    )
+
+    # --------------------------------------------------
+    # 4. Inspecting Trimming Results & Invoking
+    # --------------------------------------------------
+
+    print("[Example 1 | trim history] Messages before trimming:", len(conversation))
+    print("[Example 1 | trim history] Messages after trimming:", len(trimmed_conversation))
+
+    # Re-assemble the system message with the trimmed conversation slice using list unpacking (*).
+    response = model.invoke([system_message, *trimmed_conversation])
+    print("[Example 1 | trim history] Assistant reply:")
+    print(response.content)
+
+
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - TRIM HISTORY PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_trim_history()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 06_trim_history/main.py
@@ -115,4 +169,9 @@ print("\nAssistant:", response.content)
 #
 # IF YOU FORGET HOW THIS WORKS, START HERE:
 # Review the parameters of `trim_messages()`: `max_tokens`, `strategy="last"`, and `start_on="human"`.
+# ============================================================
+
+
+# ============================================================
+# END OF TRIM HISTORY PRACTICE
 # ============================================================

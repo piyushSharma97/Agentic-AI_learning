@@ -8,6 +8,21 @@ What you will learn in this lesson:
 4. How LCEL chains validate and substitute all variables upon invocation.
 """
 
+# ============================================================
+# LANGCHAIN: LANGUAGE INPUT - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Language input — answer one question in a chosen language
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 import os
 from dotenv import load_dotenv
 
@@ -28,39 +43,77 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# 2. Multi-Variable Prompt Template
-# --------------------------------------------------
 
-# Prompts can accept multiple variables simultaneously:
-# - {language}: Dynamic target language inserted into the system instructions.
-# - {question}: Dynamic text for the human query.
-#
-# This makes the prompt reusable for ANY language and ANY topic without changing code.
-prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a helpful tutor. Answer in {language}. Keep the explanation beginner-friendly.",
-    ),
-    ("human", "{question}"),
-])
+# ============================================================
+# EXAMPLE 1: LANGUAGE INPUT
+# USE CASE: MULTI-VARIABLE PROMPT (LANGUAGE + QUESTION)
+# ============================================================
 
-# --------------------------------------------------
-# 3. Composing & Invoking the Chain
-# --------------------------------------------------
+def example_1_language_input():
 
-# Create the LCEL chain: prompt -> model
-chain = prompt | model
+    print("\n========== EXAMPLE 1: LANGUAGE INPUT ==========")
 
-# When invoking, provide values for all defined variables in a single dictionary.
-# Here we request an explanation of Python functions in Hindi.
-response = chain.invoke({
-    "language": "Hindi",
-    "question": "What is a Python function?",
-})
+    # --------------------------------------------------
+    # 2. Multi-Variable Prompt Template
+    # --------------------------------------------------
 
-print("Multi-lingual Tutor Response:\n")
-print(response.content)
+    # Prompts can accept multiple variables simultaneously:
+    # - {language}: Dynamic target language inserted into the system instructions.
+    # - {question}: Dynamic text for the human query.
+    #
+    # This makes the prompt reusable for ANY language and ANY topic without changing code.
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are a helpful tutor. Answer in {language}. Keep the explanation beginner-friendly.",
+        ),
+        ("human", "{question}"),
+    ])
+
+    # --------------------------------------------------
+    # 3. Composing & Invoking the Chain
+    # --------------------------------------------------
+
+    # Create the LCEL chain: prompt -> model
+    chain = prompt | model
+
+    # When invoking, provide values for all defined variables in a single dictionary.
+    # Here we request an explanation of Python functions in Hindi.
+    response = chain.invoke({
+        "language": "Hindi",
+        "question": "What is a Python function?",
+    })
+
+    print("[Example 1 | language input] Tutor reply:")
+    print(response.content)
+
+
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - LANGUAGE INPUT PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_language_input()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 05_language_input/main.py
@@ -90,4 +143,9 @@ print(response.content)
 #
 # IF YOU FORGET HOW THIS WORKS, START HERE:
 # Compare the `{language}` placeholder in the system tuple with `"language": "Hindi"` in `chain.invoke({...})`.
+# ============================================================
+
+
+# ============================================================
+# END OF LANGUAGE INPUT PRACTICE
 # ============================================================

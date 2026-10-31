@@ -8,6 +8,21 @@ What you will learn in this lesson:
 4. How to compose prompt and model into an LCEL chain using the pipe operator (|).
 """
 
+# ============================================================
+# LANGCHAIN: PROMPT TEMPLATE - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Prompt template — system instructions plus MessagesPlaceholder
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 import os
 from dotenv import load_dotenv
 
@@ -30,42 +45,80 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# 2. Defining ChatPromptTemplate with MessagesPlaceholder
-# --------------------------------------------------
 
-# A ChatPromptTemplate combines static role definitions (system instructions)
-# with dynamic slots for conversation history.
-#
-# ("system", ...) -> Fixes the persona/rules: here a patient, beginner-friendly tutor.
-# MessagesPlaceholder(variable_name="messages") -> An elastic slot that receives a list of
-# [HumanMessage, AIMessage, ...] and inserts them directly into the message array sent to the model.
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a patient tutor. Explain things in simple language."),
-    MessagesPlaceholder(variable_name="messages"),
-])
+# ============================================================
+# EXAMPLE 1: PROMPT TEMPLATE
+# USE CASE: SYSTEM INSTRUCTIONS WITH A MESSAGE SLOT
+# ============================================================
 
-# --------------------------------------------------
-# 3. Composing the LCEL Chain
-# --------------------------------------------------
+def example_1_prompt_template():
 
-# LangChain Expression Language (LCEL) uses the pipe operator (|) to link runnables:
-# prompt (formats dictionary into messages) -> model (computes response)
-chain = prompt | model
+    print("\n========== EXAMPLE 1: PROMPT TEMPLATE ==========")
 
-# --------------------------------------------------
-# 4. Invoking the Chain
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 2. Defining ChatPromptTemplate with MessagesPlaceholder
+    # --------------------------------------------------
 
-# The input to the chain is a dictionary whose key matches the variable_name defined in MessagesPlaceholder.
-response = chain.invoke({
-    "messages": [
-        HumanMessage(content="Explain the difference between a list and a tuple in Python.")
-    ]
-})
+    # A ChatPromptTemplate combines static role definitions (system instructions)
+    # with dynamic slots for conversation history.
+    #
+    # ("system", ...) -> Fixes the persona/rules: here a patient, beginner-friendly tutor.
+    # MessagesPlaceholder(variable_name="messages") -> An elastic slot that receives a list of
+    # [HumanMessage, AIMessage, ...] and inserts them directly into the message array sent to the model.
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a patient tutor. Explain things in simple language."),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
 
-print("Tutor Response:\n")
-print(response.content)
+    # --------------------------------------------------
+    # 3. Composing the LCEL Chain
+    # --------------------------------------------------
+
+    # LangChain Expression Language (LCEL) uses the pipe operator (|) to link runnables:
+    # prompt (formats dictionary into messages) -> model (computes response)
+    chain = prompt | model
+
+    # --------------------------------------------------
+    # 4. Invoking the Chain
+    # --------------------------------------------------
+
+    # The input to the chain is a dictionary whose key matches the variable_name defined in MessagesPlaceholder.
+    response = chain.invoke({
+        "messages": [
+            HumanMessage(content="Explain the difference between a list and a tuple in Python.")
+        ]
+    })
+
+    print("[Example 1 | prompt template] Tutor reply:")
+    print(response.content)
+
+
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - PROMPT TEMPLATE PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_prompt_template()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 04_prompt_template/main.py
@@ -96,4 +149,9 @@ print(response.content)
 # IF YOU FORGET HOW THIS WORKS, START HERE:
 # Look at `MessagesPlaceholder(variable_name="messages")` and see how `chain.invoke({"messages": [...]})`
 # fills that slot right after the system prompt.
+# ============================================================
+
+
+# ============================================================
+# END OF PROMPT TEMPLATE PRACTICE
 # ============================================================

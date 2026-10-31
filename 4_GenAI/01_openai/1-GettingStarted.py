@@ -32,31 +32,15 @@ if not api_key:
     print("Warning: OPENAI_API_KEY is not set in environment or .env file.")
 
 
-def _create_llm():
-    # --------------------------------------------------
-    # 2. Initializing the OpenAI Chat Model
-    # --------------------------------------------------
+# --------------------------------------------------
+# 2. Initializing the OpenAI Chat Model
+# --------------------------------------------------
 
-    # ChatOpenAI wraps the OpenAI API:
-    # • model="gpt-4o": OpenAI's flagship multimodal model.
-    # • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
-    return ChatOpenAI(model="gpt-4o", temperature=0.2)
-
-
-def _expert_prompt():
-    # Why use ChatPromptTemplate instead of Python f-strings?
-    # 1. Role Enforcement: Clearly separates "system" rules from "human" input.
-    # 2. Reusability: Defines the prompt structure once and dynamically injects variables.
-    # 3. Security: Sanitizes inputs and prevents prompt injection attacks.
-    return ChatPromptTemplate.from_messages([
-        (
-            "system",
-            "You are an expert AI engineer. "
-            "Explain technical concepts clearly, "
-            "with practical examples."
-        ),
-        ("human", "{input}"),
-    ])
+# ChatOpenAI wraps the OpenAI API:
+# • model="gpt-4o": OpenAI's flagship multimodal model.
+# • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
+# Each example below creates its own client with these same settings.
+# The client is not created at import time, so importing this file does not call the model.
 
 
 # --------------------------------------------------
@@ -68,7 +52,10 @@ def example_1_direct_invoke():
     # 3. Direct Model Invocation (Simplest Way)
     # --------------------------------------------------
 
-    llm = _create_llm()
+    # ChatOpenAI wraps the OpenAI API:
+    # • model="gpt-4o": OpenAI's flagship multimodal model.
+    # • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
     print("[Example 1 | initialized ChatOpenAI client]")
     print(llm)
 
@@ -92,7 +79,19 @@ def example_2_prompt_template():
     # 4. Creating Reusable Prompts with ChatPromptTemplate
     # --------------------------------------------------
 
-    prompt = _expert_prompt()
+    # Why use ChatPromptTemplate instead of Python f-strings?
+    # 1. Role Enforcement: Clearly separates "system" rules from "human" input.
+    # 2. Reusability: Defines the prompt structure once and dynamically injects variables.
+    # 3. Security: Sanitizes inputs and prevents prompt injection attacks.
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are an expert AI engineer. "
+            "Explain technical concepts clearly, "
+            "with practical examples."
+        ),
+        ("human", "{input}"),
+    ])
 
     # Inspecting what the formatted prompt looks like before sending to the model:
     prompt_value = prompt.invoke({"input": "Can you tell me about LangSmith?"})
@@ -109,8 +108,24 @@ def example_3_prompt_llm():
     # 5. Composing a Basic LCEL Chain (prompt | llm)
     # --------------------------------------------------
 
-    llm = _create_llm()
-    prompt = _expert_prompt()
+    # ChatOpenAI wraps the OpenAI API:
+    # • model="gpt-4o": OpenAI's flagship multimodal model.
+    # • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+
+    # Why use ChatPromptTemplate instead of Python f-strings?
+    # 1. Role Enforcement: Clearly separates "system" rules from "human" input.
+    # 2. Reusability: Defines the prompt structure once and dynamically injects variables.
+    # 3. Security: Sanitizes inputs and prevents prompt injection attacks.
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are an expert AI engineer. "
+            "Explain technical concepts clearly, "
+            "with practical examples."
+        ),
+        ("human", "{input}"),
+    ])
 
     # The pipe operator (|) is LangChain Expression Language (LCEL).
     # It links components like an assembly line:
@@ -135,8 +150,24 @@ def example_4_prompt_llm_parser():
     # THE UNIVERSAL LANGCHAIN PRODUCTION PATTERN
     # --------------------------------------------------
 
-    llm = _create_llm()
-    prompt = _expert_prompt()
+    # ChatOpenAI wraps the OpenAI API:
+    # • model="gpt-4o": OpenAI's flagship multimodal model.
+    # • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+
+    # Why use ChatPromptTemplate instead of Python f-strings?
+    # 1. Role Enforcement: Clearly separates "system" rules from "human" input.
+    # 2. Reusability: Defines the prompt structure once and dynamically injects variables.
+    # 3. Security: Sanitizes inputs and prevents prompt injection attacks.
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are an expert AI engineer. "
+            "Explain technical concepts clearly, "
+            "with practical examples."
+        ),
+        ("human", "{input}"),
+    ])
 
     # StrOutputParser extracts just the clean string from the AIMessage object.
     output_parser = StrOutputParser()

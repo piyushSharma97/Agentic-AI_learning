@@ -11,6 +11,21 @@ What you will learn in this lesson:
 7. Building an interactive terminal application supporting runtime commands (/new, /language <lang>, exit).
 """
 
+# ============================================================
+# LANGCHAIN: COMPLETE CHATBOT - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Complete chatbot — interactive loop with /new, /language, and exit
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 # os reads environment variables so secrets and model settings stay outside the source code.
 import os
 # uuid4 creates globally unique session identifiers for distinct conversations.
@@ -48,137 +63,171 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# STEP 1: Session Store & History Provider
-# --------------------------------------------------
 
-# Map session_id string -> BaseChatMessageHistory instance.
-# Each user or chat tab receives a unique session ID for complete conversation isolation.
-session_store: dict[str, BaseChatMessageHistory] = {}
+# ============================================================
+# EXAMPLE 1: COMPLETE CHATBOT
+# USE CASE: INTERACTIVE PRODUCTION CHAT LOOP
+# ============================================================
 
+def example_1_complete_chatbot():
 
-def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    """Factory function returning the active ChatMessageHistory for a given session."""
-    if session_id not in session_store:
-        session_store[session_id] = ChatMessageHistory()
-    return session_store[session_id]
+    print("\n========== EXAMPLE 1: COMPLETE CHATBOT ==========")
 
+    # --------------------------------------------------
+    # STEP 1: Session Store & History Provider
+    # --------------------------------------------------
 
-# --------------------------------------------------
-# STEP 2: Reusable Multi-Variable Prompt Template
-# --------------------------------------------------
+    # Map session_id string -> BaseChatMessageHistory instance.
+    # Each user or chat tab receives a unique session ID for complete conversation isolation.
+    session_store: dict[str, BaseChatMessageHistory] = {}
 
-# The prompt combines:
-# 1. System instructions: defines persona and enforces dynamic response language {language}.
-# 2. MessagesPlaceholder: dynamically injects trimmed conversation turns under the variable name "history".
-# 3. Human message: formats the latest user query {question}.
-prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a helpful assistant. Be accurate and clear. "
-        "Respond in {language}.",
-    ),
-    MessagesPlaceholder(variable_name="history"),
-    ("human", "{question}"),
-])
+    def get_session_history(session_id: str) -> BaseChatMessageHistory:
+        """Factory function returning the active ChatMessageHistory for a given session."""
+        if session_id not in session_store:
+            session_store[session_id] = ChatMessageHistory()
+        return session_store[session_id]
 
-# --------------------------------------------------
-# STEP 3: History Trimmer for Context Window Safety
-# --------------------------------------------------
+    # --------------------------------------------------
+    # STEP 2: Reusable Multi-Variable Prompt Template
+    # --------------------------------------------------
 
-# Trimmer protects the LLM from token overflow errors.
-# - max_tokens=1200: keeps history within 1200 tokens.
-# - strategy="last": retains the most recent conversation context.
-# - token_counter="approximate": fast character/token heuristic (approx 4 chars/token).
-# - start_on="human": ensures history begins on a user turn.
-history_trimmer = trim_messages(
-    max_tokens=1200,
-    strategy="last",
-    token_counter="approximate",
-    include_system=False,
-    allow_partial=False,
-    start_on="human",
-)
+    # The prompt combines:
+    # 1. System instructions: defines persona and enforces dynamic response language {language}.
+    # 2. MessagesPlaceholder: dynamically injects trimmed conversation turns under the variable name "history".
+    # 3. Human message: formats the latest user query {question}.
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are a helpful assistant. Be accurate and clear. "
+            "Respond in {language}.",
+        ),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{question}"),
+    ])
 
-# --------------------------------------------------
-# STEP 4: Assembling the Processing Pipeline (LCEL)
-# --------------------------------------------------
+    # --------------------------------------------------
+    # STEP 3: History Trimmer for Context Window Safety
+    # --------------------------------------------------
 
-# RunnablePassthrough.assign takes incoming dictionary:
-# {'question': '...', 'language': '...', 'history': [...]}
-# It extracts 'history' via itemgetter("history"), pipes it through history_trimmer,
-# and updates the 'history' key in place.
-# The trimmed dictionary then flows cleanly into prompt -> model.
-chain = (
-    RunnablePassthrough.assign(
-        history=itemgetter("history") | history_trimmer
+    # Trimmer protects the LLM from token overflow errors.
+    # - max_tokens=1200: keeps history within 1200 tokens.
+    # - strategy="last": retains the most recent conversation context.
+    # - token_counter="approximate": fast character/token heuristic (approx 4 chars/token).
+    # - start_on="human": ensures history begins on a user turn.
+    history_trimmer = trim_messages(
+        max_tokens=1200,
+        strategy="last",
+        token_counter="approximate",
+        include_system=False,
+        allow_partial=False,
+        start_on="human",
     )
-    | prompt
-    | model
-)
 
-# --------------------------------------------------
-# STEP 5: Wrapping Chain with RunnableWithMessageHistory
-# --------------------------------------------------
+    # --------------------------------------------------
+    # STEP 4: Assembling the Processing Pipeline (LCEL)
+    # --------------------------------------------------
 
-# When our chain expects multiple dictionary keys, we must tell RunnableWithMessageHistory:
-# 1. input_messages_key="question": Which key contains the new user query to append to history.
-# 2. history_messages_key="history": Which key should receive the stored conversation messages.
-chatbot = RunnableWithMessageHistory(
-    chain,
-    get_session_history,
-    input_messages_key="question",
-    history_messages_key="history",
-)
-
-# --------------------------------------------------
-# Interactive Terminal Chatbot Loop
-# --------------------------------------------------
-
-session_id = str(uuid4())
-language = "English"
-
-print("==================================================")
-print("Complete Chatbot Architecture Demo")
-print("Commands:")
-print("  /new              - Start a fresh session (clears memory)")
-print("  /language <lang>  - Switch language (e.g. /language Hindi, /language Spanish)")
-print("  exit / quit       - Terminate the chatbot")
-print("==================================================")
-
-while True:
-    user_text = input("\nYou: ").strip()
-
-    # Exit command
-    if user_text.lower() in {"exit", "quit"}:
-        print("Goodbye!")
-        break
-
-    # Reset session command
-    if user_text == "/new":
-        session_id = str(uuid4())
-        print(f"Started a new session (ID: {session_id[:8]}...). Memory cleared.")
-        continue
-
-    # Change response language dynamically
-    if user_text.startswith("/language "):
-        language = user_text.removeprefix("/language ").strip() or "English"
-        print(f"Response language set to: {language}")
-        continue
-
-    # Ignore blank lines
-    if not user_text:
-        continue
-
-    # Invoke the full stateful, trimmed pipeline
-    try:
-        response = chatbot.invoke(
-            {"question": user_text, "language": language},
-            config={"configurable": {"session_id": session_id}},
+    # RunnablePassthrough.assign takes incoming dictionary:
+    # {'question': '...', 'language': '...', 'history': [...]}
+    # It extracts 'history' via itemgetter("history"), pipes it through history_trimmer,
+    # and updates the 'history' key in place.
+    # The trimmed dictionary then flows cleanly into prompt -> model.
+    chain = (
+        RunnablePassthrough.assign(
+            history=itemgetter("history") | history_trimmer
         )
-        print(f"Assistant: {response.content}")
-    except Exception as error:
-        print(f"Request failed: {error}")
+        | prompt
+        | model
+    )
+
+    # --------------------------------------------------
+    # STEP 5: Wrapping Chain with RunnableWithMessageHistory
+    # --------------------------------------------------
+
+    # When our chain expects multiple dictionary keys, we must tell RunnableWithMessageHistory:
+    # 1. input_messages_key="question": Which key contains the new user query to append to history.
+    # 2. history_messages_key="history": Which key should receive the stored conversation messages.
+    chatbot = RunnableWithMessageHistory(
+        chain,
+        get_session_history,
+        input_messages_key="question",
+        history_messages_key="history",
+    )
+
+    # --------------------------------------------------
+    # Interactive Terminal Chatbot Loop
+    # --------------------------------------------------
+
+    session_id = str(uuid4())
+    language = "English"
+
+    print("[Example 1 | complete chatbot] Complete Chatbot Architecture Demo")
+    print("[Example 1 | complete chatbot] Commands:")
+    print("[Example 1 | complete chatbot]   /new              - Start a fresh session (clears memory)")
+    print("[Example 1 | complete chatbot]   /language <lang>  - Switch language (e.g. /language Hindi, /language Spanish)")
+    print("[Example 1 | complete chatbot]   exit / quit       - Terminate the chatbot")
+
+    while True:
+        user_text = input("\nYou: ").strip()
+
+        # Exit command
+        if user_text.lower() in {"exit", "quit"}:
+            print("[Example 1 | complete chatbot] Goodbye!")
+            break
+
+        # Reset session command
+        if user_text == "/new":
+            session_id = str(uuid4())
+            print(f"[Example 1 | complete chatbot] Started a new session (ID: {session_id[:8]}...). Memory cleared.")
+            continue
+
+        # Change response language dynamically
+        if user_text.startswith("/language "):
+            language = user_text.removeprefix("/language ").strip() or "English"
+            print(f"[Example 1 | complete chatbot] Response language set to: {language}")
+            continue
+
+        # Ignore blank lines
+        if not user_text:
+            continue
+
+        # Invoke the full stateful, trimmed pipeline
+        try:
+            response = chatbot.invoke(
+                {"question": user_text, "language": language},
+                config={"configurable": {"session_id": session_id}},
+            )
+            print(f"[Example 1 | complete chatbot] Assistant reply: {response.content}")
+        except Exception as error:
+            print(f"[Example 1 | complete chatbot] Request failed: {error}")
+
+
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - COMPLETE CHATBOT PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_complete_chatbot()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 07_complete_chatbot/main.py
@@ -221,4 +270,9 @@ while True:
 # Review STEP 4 and STEP 5:
 #   chain = RunnablePassthrough.assign(history=itemgetter("history") | history_trimmer) | prompt | model
 #   chatbot = RunnableWithMessageHistory(chain, get_session_history, input_messages_key="question", history_messages_key="history")
+# ============================================================
+
+
+# ============================================================
+# END OF COMPLETE CHATBOT PRACTICE
 # ============================================================
