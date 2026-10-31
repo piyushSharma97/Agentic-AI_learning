@@ -9,6 +9,21 @@ What you will learn in this lesson:
 5. How to build an interactive command-line terminal chatbot with session reset capability (/new).
 """
 
+# ============================================================
+# LANGCHAIN: SESSION MEMORY - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Session memory — interactive chat with /new and exit
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 import os
 # uuid4 generates unique random session identifiers (e.g. "c9bf9e57-1685-4c89-bafb-ff5af830be8a").
 from uuid import uuid4
@@ -37,73 +52,109 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# 2. Session Store & Factory Function
-# --------------------------------------------------
 
-# In-memory dictionary mapping session_id (str) -> ChatMessageHistory.
-# Note: Because this is an in-memory dict, conversations reset when the script exits.
-# In production, this can be backed by Redis, SQLite, MongoDB, or Postgres.
-session_store: dict[str, BaseChatMessageHistory] = {}
+# ============================================================
+# EXAMPLE 1: SESSION MEMORY
+# USE CASE: INTERACTIVE CHAT WITH AUTOMATED HISTORY
+# ============================================================
+
+def example_1_session_memory():
+
+    print("\n========== EXAMPLE 1: SESSION MEMORY ==========")
+
+    # --------------------------------------------------
+    # 2. Session Store & Factory Function
+    # --------------------------------------------------
+
+    # In-memory dictionary mapping session_id (str) -> ChatMessageHistory.
+    # Note: Because this is an in-memory dict, conversations reset when the script exits.
+    # In production, this can be backed by Redis, SQLite, MongoDB, or Postgres.
+    session_store: dict[str, BaseChatMessageHistory] = {}
+
+    def get_session_history(session_id: str) -> BaseChatMessageHistory:
+        """
+        Factory function required by RunnableWithMessageHistory.
+        Given a session_id, returns existing history or creates and stores a fresh one.
+        """
+        if session_id not in session_store:
+            session_store[session_id] = ChatMessageHistory()
+        return session_store[session_id]
+
+    # --------------------------------------------------
+    # 3. Wrapping the Model with RunnableWithMessageHistory
+    # --------------------------------------------------
+
+    # RunnableWithMessageHistory acts as a proxy:
+    # 1. Inspects config['configurable']['session_id']
+    # 2. Calls get_session_history(session_id) to retrieve previous messages
+    # 3. Merges previous messages with new incoming messages
+    # 4. Passes combined messages to the underlying model
+    # 5. Automatically records both the human input and model's response into history
+    chat = RunnableWithMessageHistory(model, get_session_history)
+
+    # Generate a fresh UUID for the initial conversation session.
+    session_id = str(uuid4())
+
+    # --------------------------------------------------
+    # 4. Interactive Chat Loop (Terminal REPL)
+    # --------------------------------------------------
+
+    print("[Example 1 | session memory] Session-memory demo. Type /new for a separate chat, or exit to quit.")
+
+    while True:
+        # Read user input from the console
+        text = input("\nYou: ").strip()
+
+        # Allow user to quit the application
+        if text.lower() in {"exit", "quit"}:
+            print("[Example 1 | session memory] Goodbye!")
+            break
+
+        # Command to simulate a new user session or wipe conversation context
+        if text == "/new":
+            session_id = str(uuid4())
+            print(f"[Example 1 | session memory] Started a new session (ID: {session_id[:8]}...). Memory is reset!")
+            continue
+
+        # Skip empty inputs
+        if not text:
+            continue
+
+        # Invoke the stateful chat runner.
+        # Notice we only send the CURRENT message; LangChain automatically pulls and updates history!
+        response = chat.invoke(
+            [HumanMessage(content=text)],
+            config={"configurable": {"session_id": session_id}},
+        )
+        print(f"[Example 1 | session memory] Assistant reply: {response.content}")
 
 
-def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    """
-    Factory function required by RunnableWithMessageHistory.
-    Given a session_id, returns existing history or creates and stores a fresh one.
-    """
-    if session_id not in session_store:
-        session_store[session_id] = ChatMessageHistory()
-    return session_store[session_id]
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - SESSION MEMORY PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_session_memory()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
 
 
-# --------------------------------------------------
-# 3. Wrapping the Model with RunnableWithMessageHistory
-# --------------------------------------------------
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
 
-# RunnableWithMessageHistory acts as a proxy:
-# 1. Inspects config['configurable']['session_id']
-# 2. Calls get_session_history(session_id) to retrieve previous messages
-# 3. Merges previous messages with new incoming messages
-# 4. Passes combined messages to the underlying model
-# 5. Automatically records both the human input and model's response into history
-chat = RunnableWithMessageHistory(model, get_session_history)
+if __name__ == "__main__":
+    main()
 
-# Generate a fresh UUID for the initial conversation session.
-session_id = str(uuid4())
-
-# --------------------------------------------------
-# 4. Interactive Chat Loop (Terminal REPL)
-# --------------------------------------------------
-
-print("Session-memory demo. Type /new for a separate chat, or exit to quit.")
-
-while True:
-    # Read user input from the console
-    text = input("\nYou: ").strip()
-
-    # Allow user to quit the application
-    if text.lower() in {"exit", "quit"}:
-        print("Goodbye!")
-        break
-
-    # Command to simulate a new user session or wipe conversation context
-    if text == "/new":
-        session_id = str(uuid4())
-        print(f"Started a new session (ID: {session_id[:8]}...). Memory is reset!")
-        continue
-
-    # Skip empty inputs
-    if not text:
-        continue
-
-    # Invoke the stateful chat runner.
-    # Notice we only send the CURRENT message; LangChain automatically pulls and updates history!
-    response = chat.invoke(
-        [HumanMessage(content=text)],
-        config={"configurable": {"session_id": session_id}},
-    )
-    print(f"Assistant: {response.content}")
 
 # ============================================================
 # REVISION NOTES — 03_session_memory/main.py
@@ -137,4 +188,9 @@ while True:
 # IF YOU FORGET HOW THIS WORKS, START HERE:
 # Look at `chat = RunnableWithMessageHistory(model, get_session_history)` and trace how `config`
 # supplies `session_id` on each turn of the `while True` loop.
+# ============================================================
+
+
+# ============================================================
+# END OF SESSION MEMORY PRACTICE
 # ============================================================
