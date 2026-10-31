@@ -11,11 +11,14 @@ What you will learn in this lesson:
 7. Building an interactive terminal application supporting runtime commands (/new, /language <lang>, exit).
 """
 
+# os reads environment variables so secrets and model settings stay outside the source code.
 import os
 # uuid4 creates globally unique session identifiers for distinct conversations.
 from uuid import uuid4
+# itemgetter selects the "history" value from the input dictionary in the LCEL pipeline.
 from operator import itemgetter
 
+# load_dotenv makes values in the local .env file available through os.environ.
 from dotenv import load_dotenv
 # ChatMessageHistory stores message sequences in memory.
 from langchain_community.chat_message_histories import ChatMessageHistory
