@@ -16,6 +16,14 @@ Key Properties of Lists:
 2. Mutable: You can add, remove, and change items after the list is created without creating a new object.
 3. Heterogeneous: A single list can contain mixed data types (integers, strings, floats, objects).
 4. Allows Duplicates: Multiple identical items can coexist within the same list.
+
+JavaScript comparison:
+- A Python list is a JavaScript array. Both are ordered and mutable.
+- append(x) is push(x). pop() removes the last item in both.
+- len(items) is items.length.
+- items[0] works in both. items[-1] is the last item in Python. JavaScript uses items.at(-1).
+- items[1:4] is items.slice(1, 4). The end index is excluded in both.
+- "x" in items searches values in Python. JavaScript uses items.includes("x"). The in operator in JavaScript searches indexes, not values.
 """
 
 # ==================================================

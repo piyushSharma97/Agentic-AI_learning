@@ -15,6 +15,13 @@ Topics Covered:
 3. Reading user input from the console using input().
 4. Implicit type conversion (automatic promotion).
 5. Explicit type conversion (type casting functions like int(), float(), str()).
+
+JavaScript comparison:
+- Python creates a variable with name = "Piyush". JavaScript needs let, const, or var in front of a new name.
+- Both languages are dynamically typed: you do not write int name or string name.
+- input() reads a line of text in the terminal. In a browser, prompt() is the rough match.
+- int("5") and float("5.4") convert text. JavaScript uses Number("5") or parseInt("5", 10).
+- Python style uses snake_case. JavaScript style usually uses camelCase.
 """
 
 # --------------------------------------------------

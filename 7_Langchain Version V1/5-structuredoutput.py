@@ -6,13 +6,29 @@
 
 
 # ============================================================
-# 1. ENVIRONMENT CONFIGURATION
+# LANGCHAIN V1: STRUCTURED OUTPUT - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Pydantic - Product extraction
+# 2. Nested Pydantic - Candidate / Resume extraction
+# 3. TypedDict - Customer support classification
+# 4. Dataclass - Employee information extraction
+# 5. include_raw=True - Expense extraction and debugging
+# 6. create_agent + ToolStrategy - Travel planning
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
 # ============================================================
 
 import os
 from dotenv import load_dotenv
 
-# Load API keys from the .env file.
+# Load environment variables from .env.
 load_dotenv()
 
 # Validate the Groq API key.
@@ -27,41 +43,105 @@ if not os.getenv("GROQ_API_KEY"):
 from langchain.chat_models import init_chat_model
 
 # Initialize a Groq-hosted model.
-# Use a model ID currently available to your Groq account.
+# Ensure this model is available to your Groq account.
 model = init_chat_model("groq:openai/gpt-oss-120b")
 
-# Test normal model invocation.
-response = model.invoke("Explain structured output in AI.")
+print("\nModel initialized successfully!")
+print("\n Model Profie",model.profile)
 
-print(f"Response Content=>{response.content}")
 
 # ============================================================
-# 3. PYDANTIC STRUCTURED OUTPUT
+# EXAMPLE 1: PYDANTIC STRUCTURED OUTPUT
+# USE CASE: E-COMMERCE PRODUCT EXTRACTION
 # ============================================================
 
 from pydantic import BaseModel, Field
 
 
-# Define the expected structure of a movie.
-class Movie(BaseModel):
-    """A movie with its basic information."""
+class Product(BaseModel):
+    """
+    Pydantic automatically validates the output
+    against the declared field types and constraints.
+    """
 
-    # Movie title must be a string.
+    name: str = Field(
+        description="Product name"
+    )
+
+    storage: str = Field(
+        description="Product storage capacity"
+    )
+
+    price: float = Field(
+        description="Product price in INR",
+        gt=0
+    )
+
+    color: str = Field(
+        description="Product color"
+    )
+
+
+def example_1_pydantic():
+
+    print("\n========== EXAMPLE 1: PYDANTIC ==========")
+
+    # Convert the chat model into a structured-output model.
+    # The LLM is instructed to return data matching Product.
+    structured_model = model.with_structured_output(
+        Product,
+    )
+
+    # Provide unstructured text.
+    response = structured_model.invoke(
+        """
+        Provide product details for Apple iPhone 12
+        using your existing knowledge.
+
+        Include a commonly available storage capacity,
+        an estimated price in INR, and a color.
+   
+        """
+    )
+
+    # Response is a validated Product instance.
+    print("\nComplete response:")
+    print(response)
+
+    # Access fields using dot notation.
+    print("\nProduct name:", response.name)
+    print("Storage:", response.storage)
+    print("Price:", response.price)
+    print("Color:", response.color)
+
+    # Convert Pydantic object into a dictionary.
+    print("\nDictionary:")
+    print(response.model_dump())
+
+    # Convert Pydantic object into JSON.
+    print("\nJSON:")
+    print(response.model_dump_json(indent=2))
+    movie_example()
+
+class Actor(BaseModel):
+    name: str
+    role: str
+class Movie(BaseModel):
+    """Expected structure of movie information."""
+
     title: str = Field(
         description="The title of the movie."
     )
 
-    # Release year must be an integer.
     year: int = Field(
         description="The year the movie was released."
     )
 
-    # Director's name must be a string.
     director: str = Field(
         description="The director of the movie."
     )
-
-    # Rating must be a float between 0 and 10.
+    cast: list[Actor]
+    genres: list[str]
     rating: float = Field(
         description="The movie's rating out of 10.",
         ge=0,
@@ -69,424 +149,449 @@ class Movie(BaseModel):
     )
 
 
-# ============================================================
-# 4. CONVERT THE MODEL TO STRUCTURED OUTPUT
-# ============================================================
+def movie_example():
 
-# with_structured_output() instructs the LLM to return
-# data matching the Movie schema.
-#
-# function_calling uses tool/function calling to obtain
-# structured data. It is useful with providers such as Groq.
+    print("\n========== MOVIE EXAMPLE ==========")
 
-model_with_structure = model.with_structured_output(
-    Movie,
-    method="function_calling"
-)
+    # Tell the model to return output matching Movie.
+    structured_model = model.with_structured_output(
+        Movie,
+        method="function_calling"
+    )
 
-# Send a prompt to the model.
-response = model_with_structure.invoke(
-    "Provide details about the movie Inception."
-)
+    # The model can use its existing knowledge about Inception.
+    response = structured_model.invoke(
+        """
+        Provide details about the movie Inception.
 
-# The response is a validated Pydantic Movie instance.
-print(f"Structure Output=> {response}")
+        Include its title, release year, director
+        and rating out of 10.
+        """
+    )
 
-# Access individual fields using dot notation.
-print("\nMovie Title:", response.title)
-print("Release Year:", response.year)
-print("Director:", response.director)
-print("Rating:", response.rating)
+    # Print complete Pydantic object.
+    print("\nComplete response:")
+    print(response)
 
-# Convert the Pydantic object into a Python dictionary.
-print("\nDictionary:", response.model_dump())
+    # Access individual fields.
+    print("\nTitle:", response.title)
+    print("Year:", response.year)
+    print("Director:", response.director)
+    print("Rating:", response.rating)
 
-# Convert the Pydantic object into JSON.
-print("\nJSON:", response.model_dump_json(indent=2))
+    # Convert to dictionary.
+    print("\nDictionary:")
+    print(response.model_dump())
 
-model.invoke("Provide details about the moview Inception")
-
-
-response=model_with_structure.invoke("Provide details about the moview Inception")
-response
-# ============================================================
-# 5. STRUCTURED OUTPUT WITH RAW RESPONSE
-# ============================================================
-
-# include_raw=True returns both:
-# 1. The original AIMessage.
-# 2. The parsed structured output.
-# 3. Any parsing error.
-
-model_with_structure = model.with_structured_output(
-    Movie,
-    method="function_calling",
-    include_raw=True
-)
-
-response = model_with_structure.invoke(
-    "Provide details about the movie Inception."
-)
-
-# Inspect the complete result.
-print(response)
-
-# Extract the original AIMessage.
-raw_response = response["raw"]
-
-print("\nRAW RESPONSE:")
-print(raw_response)
-
-# Extract the parsed Pydantic object.
-parsed_response = response["parsed"]
-
-print("\nPARSED RESPONSE:")
-print(parsed_response)
-
-# Inspect parsing errors, if any.
-parsing_error = response["parsing_error"]
-
-print("\nPARSING ERROR:")
-print(parsing_error)
-
-# Access structured fields when parsing succeeds.
-if parsed_response is not None:
-    print("\nMOVIE TITLE:", parsed_response.title)
-    print("MOVIE YEAR:", parsed_response.year)
+    # Convert to JSON.
+    print("\nJSON:")
+    print(response.model_dump_json(indent=2))
 
 # ============================================================
-# 6. NESTED PYDANTIC STRUCTURES
+# EXAMPLE 2: NESTED PYDANTIC STRUCTURES
+# USE CASE: RESUME / CANDIDATE EXTRACTION
 # ============================================================
 
-from pydantic import BaseModel, Field
+
+class Skill(BaseModel):
+    """Represents one skill of a candidate."""
+
+    name: str
+
+    experience_years: float
 
 
-# Define the structure of an individual actor.
-class Actor(BaseModel):
-    """Information about a movie actor."""
+class Education(BaseModel):
+    """Represents candidate education details."""
 
-    name: str = Field(
-        description="The actor's full name."
+    degree: str
+
+    university: str
+
+    graduation_year: int
+
+
+class Candidate(BaseModel):
+    """
+    Main candidate model.
+
+    This contains:
+    - Normal fields
+    - A list of nested Skill objects
+    - A nested Education object
+    """
+
+    name: str
+
+    skills: list[Skill]
+
+    education: Education
+
+
+def example_2_nested_pydantic():
+
+    print("\n========== EXAMPLE 2: NESTED PYDANTIC ==========")
+
+    structured_model = model.with_structured_output(
+        Candidate,
+        method="function_calling"
     )
 
-    role: str = Field(
-        description="The character played by the actor."
+    response = structured_model.invoke(
+        """
+        Extract candidate information:
+
+        Rahul Sharma has 4 years of React experience
+        and 2 years of Node.js experience.
+
+        He completed B.Tech in Computer Science
+        from XYZ University in 2022.
+        """
     )
 
+    print("\nComplete response:")
+    print(response)
 
-# Define the complete movie structure.
-class MovieDetails(BaseModel):
-    """Detailed information about a movie."""
+    # Access top-level field.
+    print("\nCandidate name:", response.name)
 
-    title: str = Field(
-        description="The title of the movie."
-    )
+    # Access nested Education object.
+    print("Degree:", response.education.degree)
+    print("University:", response.education.university)
 
-    year: int = Field(
-        description="The release year."
-    )
+    # Iterate through the list of nested Skill objects.
+    print("\nSkills:")
 
-    # A list containing multiple Actor objects.
-    # Every item must follow the Actor schema.
-    cast: list[Actor] = Field(
-        description="List of actors and their roles."
-    )
+    for skill in response.skills:
+        print("Skill:", skill.name)
+        print("Experience:", skill.experience_years)
+        print("------------------------")
 
-    # A list containing multiple genre strings.
-    genres: list[str] = Field(
-        description="Genres of the movie."
-    )
-
-    # Budget is optional and can be None.
-    # The field itself defaults to None.
-    budget: float | None = Field(
-        default=None,
-        description="Budget in millions of USD."
-    )
-
-
-# Convert the model into a structured-output model.
-model_with_structure = model.with_structured_output(
-    MovieDetails,
-    method="function_calling"
-)
-
-# Request nested movie information.
-response = model_with_structure.invoke(
-    "Provide detailed information about the movie Inception, "
-    "including its cast, roles, genres and production budget. "
-    "If any information is unknown, use an appropriate empty "
-    "or null value rather than inventing it."
-)
-
-print(response)
-
-# Access top-level fields.
-print("\nMOVIE:", response.title)
-print("YEAR:", response.year)
-print("GENRES:", response.genres)
-print("BUDGET:", response.budget)
-
-# Iterate through the nested Actor objects.
-print("\nCAST DETAILS:")
-
-for actor in response.cast:
-    print("Actor:", actor.name)
-    print("Role:", actor.role)
-    print("------------------------")
+    # Convert complete nested structure to dictionary.
+    print("\nDictionary:")
+    print(response.model_dump())
 
 
 # ============================================================
-# 7. STRUCTURED OUTPUT USING TYPEDDICT
+# EXAMPLE 3: TYPEDDICT STRUCTURED OUTPUT
+# USE CASE: CUSTOMER SUPPORT CLASSIFICATION
 # ============================================================
 
 from typing_extensions import TypedDict, Annotated
 
 
-# Define the expected structure of a movie dictionary.
-class MovieDict(TypedDict):
-    """A movie with basic information."""
-
-    # Annotated adds a description to each field.
-    title: Annotated[
-        str,
-        "The title of the movie."
-    ]
-
-    year: Annotated[
-        int,
-        "The year the movie was released."
-    ]
-
-    director: Annotated[
-        str,
-        "The director of the movie."
-    ]
-
-    rating: Annotated[
-        float,
-        "The movie's rating out of 10."
-    ]
-
-
-# Tell the model to return a dictionary matching MovieDict.
-model_with_typeddict = model.with_structured_output(
-    MovieDict,
-    method="function_calling"
-)
-
-response = model_with_typeddict.invoke(
-    "Provide the details of the movie Avengers: Endgame."
-)
-
-# TypedDict output is a normal Python dictionary.
-print(response)
-
-# Access fields using dictionary notation.
-print("\nTITLE:", response["title"])
-print("YEAR:", response["year"])
-print("DIRECTOR:", response["director"])
-print("RATING:", response["rating"])
-
-
-# ============================================================
-# 9. STRUCTURED OUTPUT USING DATACLASS
-# ============================================================
-
-from dataclasses import dataclass
-from langchain.chat_models import init_chat_model
-
-
-# Define a dataclass for contact information.
-@dataclass
-class ContactInfo:
-    """Contact information for a person."""
-
-    name: str
-    email: str
-    phone: str
-
-
-# Convert the dataclass into a structured-output model.
-model_with_dataclass = model.with_structured_output(
-    ContactInfo,
-    method="function_calling"
-)
-
-# Ask the LLM to extract contact information.
-response = model_with_dataclass.invoke(
+class SupportTicket(TypedDict):
     """
-    Extract contact information from the following text:
+    TypedDict defines the expected dictionary structure.
 
-    John Doe, john@example.com, (555) 123-4567
+    Unlike Pydantic, TypedDict does not independently
+    validate runtime values.
     """
-)
 
-# The response is a ContactInfo dataclass instance.
-print(response)
-
-# Access fields using dot notation.
-print("\nNAME:", response.name)
-print("EMAIL:", response.email)
-print("PHONE:", response.phone)
-
-# ============================================================
-# 10. STRUCTURED OUTPUT USING PYDANTIC + CREATE_AGENT
-# ============================================================
-
-from pydantic import BaseModel, Field
-from langchain.agents import create_agent, ToolStrategy
-
-
-# Define the expected contact information schema.
-class ContactInfo(BaseModel):
-    """Contact information extracted from text."""
-
-    name: str = Field(
-        description="The person's full name."
-    )
-
-    email: str = Field(
-        description="The person's email address."
-    )
-
-    phone: str = Field(
-        description="The person's phone number."
-    )
-
-
-# Create an agent with structured output.
-agent = create_agent(
-    model=model,
-    tools=[],
-
-    # ToolStrategy explicitly uses tool calling
-    # to generate the structured response.
-    # This is useful when the provider does not offer
-    # native structured-output support.
-    response_format=ToolStrategy(ContactInfo)
-)
-
-# Invoke the agent with a user message.
-result = agent.invoke({
-    "messages": [
-        {
-            "role": "user",
-            "content": """
-            Extract contact information from:
-
-            John Doe, john@example.com, (555) 123-4567
-            """
-        }
+    category: Annotated[
+        str,
+        "Category of the customer complaint"
     ]
-})
 
-# Extract the structured response from the agent state.
-structured_response = result["structured_response"]
-
-print(structured_response)
-
-# Access the Pydantic object using dot notation.
-print("\nNAME:", structured_response.name)
-print("EMAIL:", structured_response.email)
-print("PHONE:", structured_response.phone)
-
-
-# ============================================================
-# 11. STRUCTURED OUTPUT USING TYPEDDICT + CREATE_AGENT
-# ============================================================
-
-from typing_extensions import TypedDict
-from langchain.agents import create_agent, ToolStrategy
-
-
-# Define contact information using TypedDict.
-class ContactInfoDict(TypedDict):
-    """Contact information for a person."""
-
-    name: str
-    email: str
-    phone: str
-
-
-# Create an agent with TypedDict as its response schema.
-agent = create_agent(
-    model=model,
-    tools=[],
-    response_format=ToolStrategy(ContactInfoDict)
-)
-
-# Ask the agent to extract structured contact information.
-result = agent.invoke({
-    "messages": [
-        {
-            "role": "user",
-            "content": """
-            Extract contact information from:
-
-            John Doe, john@example.com, (555) 123-4567
-            """
-        }
+    priority: Annotated[
+        str,
+        "Priority: low, medium or high"
     ]
-})
 
-# Extract the structured response.
-response = result["structured_response"]
+    summary: Annotated[
+        str,
+        "Short summary of the complaint"
+    ]
 
-# TypedDict responses are ordinary Python dictionaries.
-print(response)
+    requires_refund: Annotated[
+        bool,
+        "Whether the customer is requesting a refund"
+    ]
 
-# Access fields using dictionary notation.
-print("\nNAME:", response["name"])
-print("EMAIL:", response["email"])
-print("PHONE:", response["phone"])
+
+def example_3_typeddict():
+
+    print("\n========== EXAMPLE 3: TYPEDDICT ==========")
+
+    structured_model = model.with_structured_output(
+        SupportTicket,
+        method="function_calling"
+    )
+
+    response = structured_model.invoke(
+        """
+        My payment was deducted,
+        but my order was not placed.
+
+        Please help me get my money back.
+        """
+    )
+
+    print("\nComplete response:")
+    print(response)
+
+    # TypedDict output is a normal Python dictionary.
+    # Therefore, access fields using dictionary notation.
+
+    print("\nCategory:", response["category"])
+    print("Priority:", response["priority"])
+    print("Summary:", response["summary"])
+    print("Requires refund:", response["requires_refund"])
 
 
 # ============================================================
-# 12. STRUCTURED OUTPUT USING DATACLASS + CREATE_AGENT
+# EXAMPLE 4: DATACLASS STRUCTURED OUTPUT
+# USE CASE: EMPLOYEE INFORMATION EXTRACTION
 # ============================================================
 
-from dataclasses import dataclass
-from langchain.agents import create_agent, ToolStrategy
+from dataclasses import dataclass, asdict
 
 
-# Define contact information using a Python dataclass.
 @dataclass
-class ContactInfoData:
-    """Contact information for a person."""
+class Employee:
+    """
+    Dataclass provides a lightweight Python data container.
+
+    Python automatically generates methods such as
+    __init__() and __repr__().
+    """
+
+    employee_id: int
 
     name: str
-    email: str
-    phone: str
+
+    department: str
+
+    salary: float
 
 
-# Create an agent using the dataclass schema.
-agent = create_agent(
-    model=model,
-    tools=[],
-    response_format=ToolStrategy(ContactInfoData)
-)
+def example_4_dataclass():
 
-# Invoke the agent.
-result = agent.invoke({
-    "messages": [
-        {
-            "role": "user",
-            "content": """
-            Extract contact information from:
+    print("\n========== EXAMPLE 4: DATACLASS ==========")
 
-            John Doe, john@example.com, (555) 123-4567
-            """
-        }
-    ]
-})
+    structured_model = model.with_structured_output(
+        Employee,
+        method="function_calling"
+    )
 
-# Extract the structured response.
-response = result["structured_response"]
+    structured_data = structured_model.invoke(
+        """
+        Extract employee information:
 
-print(response)
+        Employee ID: 101
+        Name: Amit
+        Department: Engineering
+        Salary: 85000
+        """
+    )
 
-# Access dataclass fields using dot notation.
-print("\nNAME:", response.name)
-print("EMAIL:", response.email)
-print("PHONE:", response.phone)
+    # LangChain may return dataclass-schema output as a dictionary. Build the
+    # dataclass explicitly so the following example can use attribute access.
+    response = Employee(**structured_data)
+
+    print("\nComplete response:")
+    print(response)
+
+    # Access dataclass fields using dot notation.
+    print("\nEmployee ID:", response.employee_id)
+    print("Name:", response.name)
+    print("Department:", response.department)
+    print("Salary:", response.salary)
+
+    # asdict() converts a dataclass instance to a dictionary.
+    print("\nDictionary:")
+    print(asdict(response))
+
+
+# ============================================================
+# EXAMPLE 5: STRUCTURED OUTPUT WITH include_raw=True
+# USE CASE: EXPENSE EXTRACTION AND DEBUGGING
+# ============================================================
+
+
+class Expense(BaseModel):
+    """Represents an individual expense."""
+
+    amount: float = Field(
+        description="Expense amount in INR",
+        gt=0
+    )
+
+    category: str = Field(
+        description="Expense category"
+    )
+
+    description: str = Field(
+        description="Expense description"
+    )
+
+
+def example_5_include_raw():
+
+    print("\n========== EXAMPLE 5: INCLUDE RAW ==========")
+
+    structured_model = model.with_structured_output(
+        Expense,
+        method="function_calling",
+        include_raw=True
+    )
+
+    response = structured_model.invoke(
+        """
+        I spent Rs. 1200 on groceries yesterday.
+        """
+    )
+
+    # include_raw=True returns a dictionary containing
+    # raw response, parsed response and parsing error.
+
+    raw_response = response["raw"]
+
+    parsed_response = response["parsed"]
+
+    parsing_error = response["parsing_error"]
+
+    print("\nRAW RESPONSE:")
+    print(raw_response)
+
+    print("\nPARSED RESPONSE:")
+    print(parsed_response)
+
+    print("\nPARSING ERROR:")
+    print(parsing_error)
+
+    # Only access structured fields when parsing succeeds.
+    if parsed_response is not None:
+
+        print("\nExpense amount:", parsed_response.amount)
+
+        print("Expense category:", parsed_response.category)
+
+        print("Expense description:", parsed_response.description)
+
+    else:
+        print("Structured output parsing failed.")
+
+
+# ============================================================
+# EXAMPLE 6: CREATE_AGENT + TOOLSTRATEGY
+# USE CASE: TRAVEL PLANNING
+# ============================================================
+
+from langchain.agents import create_agent
+from langchain.agents.structured_output import ToolStrategy
+
+
+class TravelPlan(BaseModel):
+    """
+    Defines the structured response expected from the agent.
+    """
+
+    destination: str = Field(
+        description="Recommended travel destination"
+    )
+
+    duration_days: int = Field(
+        description="Number of travel days",
+        gt=0
+    )
+
+    estimated_budget: float = Field(
+        description="Estimated budget in INR",
+        gt=0
+    )
+
+    activities: list[str] = Field(
+        description="List of recommended activities"
+    )
+
+
+def example_6_agent_tool_strategy():
+
+    print("\n========== EXAMPLE 6: AGENT + TOOLSTRATEGY ==========")
+
+    # Create a LangChain agent.
+    #
+    # tools=[] means this agent has no external application
+    # tools. ToolStrategy uses the model's tool-calling
+    # capability to generate the structured response.
+
+    agent = create_agent(
+        model=model,
+        tools=[],
+        response_format=ToolStrategy(TravelPlan)
+    )
+
+    # Invoke the agent.
+    result = agent.invoke({
+        "messages": [
+            {
+                "role": "user",
+                "content": """
+                Plan a 3-day budget trip to ooty for honeymoon
+                with an estimated budget of Rs. 12000.
+
+                Include sightseeing and food activities.
+                """
+            }
+        ]
+    })
+
+    # Extract structured response from agent state.
+    response = result["structured_response"]
+
+    print("\nComplete structured response:")
+    print(response)
+
+    print("\nDestination:", response.destination)
+
+    print("Duration:", response.duration_days, "days")
+
+    print("Budget:", response.estimated_budget)
+
+    print("\nActivities:")
+
+    for activity in response.activities:
+        print("-", activity)
+
+
+# ============================================================
+# 7. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN V1 - STRUCTURED OUTPUT PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_pydantic()
+
+    # example_2_nested_pydantic()
+
+    # example_3_typeddict()
+
+    # example_4_dataclass()
+
+    # example_5_include_raw()
+
+    # example_6_agent_tool_strategy()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
+
+# ============================================================
+# END OF STRUCTURED OUTPUT PRACTICE
+# ============================================================

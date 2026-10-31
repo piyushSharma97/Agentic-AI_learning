@@ -40,141 +40,171 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 # create_retrieval_chain routes queries to retriever and passes matching docs to the LLM.
 from langchain.chains import create_retrieval_chain
 
-# --------------------------------------------------
-# 1. Environment & Optional LangSmith Tracing
-# --------------------------------------------------
 
-load_dotenv()
+def example_1_local_ollama_rag():
+    # --------------------------------------------------
+    # 1. Environment & Optional LangSmith Tracing
+    # --------------------------------------------------
 
-# Optional: Enables tracing on LangSmith if API key is present.
-langsmith_api_key = os.getenv("LANGCHAIN_API_KEY")
-if langsmith_api_key:
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_API_KEY"] = langsmith_api_key
-    os.environ["LANGCHAIN_PROJECT"] = os.getenv(
-        "LANGCHAIN_PROJECT", "ollama-rag-project"
+    load_dotenv()
+
+    # Optional: Enables tracing on LangSmith if API key is present.
+    langsmith_api_key = os.getenv("LANGCHAIN_API_KEY")
+    if langsmith_api_key:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_API_KEY"] = langsmith_api_key
+        os.environ["LANGCHAIN_PROJECT"] = os.getenv(
+            "LANGCHAIN_PROJECT", "ollama-rag-project"
+        )
+
+    # --------------------------------------------------
+    # 2. Ingest Data from Target Website
+    # --------------------------------------------------
+
+    url = "https://docs.smith.langchain.com/tutorials/Administrators/manage_spend"
+    print(f"[Example 1 | source url] Step 1: Ingesting web documentation from:\n  {url}")
+
+    loader = WebBaseLoader(url)
+    docs = loader.load()
+
+    if not docs:
+        raise ValueError("No documents were loaded from the website.")
+
+    print(
+        f"[Example 1 | loaded document] Loaded {len(docs)} document "
+        f"with {len(docs[0].page_content)} characters."
     )
 
-# --------------------------------------------------
-# 2. Ingest Data from Target Website
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 3. Chunk Documents into Search-Friendly Passages
+    # --------------------------------------------------
 
-url = "https://docs.smith.langchain.com/tutorials/Administrators/manage_spend"
-print(f"Step 1: Ingesting web documentation from:\n  {url}")
+    # Split long text into 1000-character chunks with 200-character overlap
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+    )
+    documents = text_splitter.split_documents(docs)
+    print(f"[Example 1 | text chunks] Step 2: Created {len(documents)} focused text chunks.")
 
-loader = WebBaseLoader(url)
-docs = loader.load()
+    # --------------------------------------------------
+    # 4. Generate Local Ollama Embeddings (nomic-embed-text)
+    # --------------------------------------------------
 
-if not docs:
-    raise ValueError("No documents were loaded from the website.")
+    # nomic-embed-text is an open-source embedding model outperforming OpenAI text-embedding-ada-002
+    # with an 8192 token context window.
+    print("[Example 1 | local embeddings] Step 3: Initializing local Ollama embedding model (nomic-embed-text)...")
+    embeddings = OllamaEmbeddings(
+        model="nomic-embed-text"
+    )
 
-print(f"Loaded {len(docs)} document with {len(docs[0].page_content)} characters.")
+    # --------------------------------------------------
+    # 5. Build FAISS Vector Index & Configure Retriever
+    # --------------------------------------------------
 
-# --------------------------------------------------
-# 3. Chunk Documents into Search-Friendly Passages
-# --------------------------------------------------
+    # FAISS indexes document vectors in RAM for instant similarity searches
+    print("[Example 1 | vector index] Step 4: Indexing document chunks into FAISS vector store...")
+    vectorstore = FAISS.from_documents(
+        documents=documents,
+        embedding=embeddings,
+    )
 
-# Split long text into 1000-character chunks with 200-character overlap
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200,
-)
-documents = text_splitter.split_documents(docs)
-print(f"Step 2: Created {len(documents)} focused text chunks.")
+    # Configure retriever to fetch the top k=4 most relevant chunks
+    retriever = vectorstore.as_retriever(
+        search_kwargs={"k": 4}
+    )
+    print("[Example 1 | retriever] Retriever configured (k=4).")
 
-# --------------------------------------------------
-# 4. Generate Local Ollama Embeddings (nomic-embed-text)
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 6. Initialize Local Ollama Chat Model (gemma:2b)
+    # --------------------------------------------------
 
-# nomic-embed-text is an open-source embedding model outperforming OpenAI text-embedding-ada-002
-# with an 8192 token context window.
-print("Step 3: Initializing local Ollama embedding model (nomic-embed-text)...")
-embeddings = OllamaEmbeddings(
-    model="nomic-embed-text"
-)
+    # Gemma 2B is Google's lightweight, open-weights model designed for efficient local execution.
+    # temperature=0 ensures factual, deterministic reasoning strictly anchored in context.
+    print("[Example 1 | local chat model] Step 5: Initializing local ChatOllama model (gemma:2b)...")
+    llm = ChatOllama(
+        model="gemma:2b",
+        temperature=0,
+    )
 
-# --------------------------------------------------
-# 5. Build FAISS Vector Index & Configure Retriever
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 7. Define Grounding Prompt Template
+    # --------------------------------------------------
 
-# FAISS indexes document vectors in RAM for instant similarity searches
-print("Step 4: Indexing document chunks into FAISS vector store...")
-vectorstore = FAISS.from_documents(
-    documents=documents,
-    embedding=embeddings,
-)
-
-# Configure retriever to fetch the top k=4 most relevant chunks
-retriever = vectorstore.as_retriever(
-    search_kwargs={"k": 4}
-)
-print("Retriever configured (k=4).")
-
-# --------------------------------------------------
-# 6. Initialize Local Ollama Chat Model (gemma:2b)
-# --------------------------------------------------
-
-# Gemma 2B is Google's lightweight, open-weights model designed for efficient local execution.
-# temperature=0 ensures factual, deterministic reasoning strictly anchored in context.
-print("Step 5: Initializing local ChatOllama model (gemma:2b)...")
-llm = ChatOllama(
-    model="gemma:2b",
-    temperature=0,
-)
-
-# --------------------------------------------------
-# 7. Define Grounding Prompt Template
-# --------------------------------------------------
-
-# Strict system instructions prevent the model from making up answers when context is missing
-prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """Answer the question using ONLY the retrieved context below.
+    # Strict system instructions prevent the model from making up answers when context is missing
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """Answer the question using ONLY the retrieved context below.
 
 If the answer is not available in the context, say clearly that you do not have enough information.
 
 Context:
 {context}""",
-        ),
-        ("human", "{input}"),
-    ]
-)
+            ),
+            ("human", "{input}"),
+        ]
+    )
 
-# --------------------------------------------------
-# 8. Assemble Document & Retrieval Chains
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 8. Assemble Document & Retrieval Chains
+    # --------------------------------------------------
 
-# Document chain stuffs the retrieved documents into the {context} placeholder of prompt
-document_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+    # Document chain stuffs the retrieved documents into the {context} placeholder of prompt
+    document_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
 
-# Retrieval chain connects retriever -> document_chain -> LLM response
-retrieval_chain = create_retrieval_chain(
-    retriever,
-    document_chain,
-)
+    # Retrieval chain connects retriever -> document_chain -> LLM response
+    retrieval_chain = create_retrieval_chain(
+        retriever,
+        document_chain,
+    )
 
-# --------------------------------------------------
-# 9. Ask a Question & Inspect Results
-# --------------------------------------------------
+    # --------------------------------------------------
+    # 9. Ask a Question & Inspect Results
+    # --------------------------------------------------
 
-query = "What are the two usage limits in LangSmith, and what do they measure?"
-print(f"\nStep 6: Executing Local RAG Query:\n  \"{query}\"")
+    query = "What are the two usage limits in LangSmith, and what do they measure?"
+    print(f"\n[Example 1 | rag query] Step 6: Executing Local RAG Query:\n  \"{query}\"")
 
-response = retrieval_chain.invoke({"input": query})
+    response = retrieval_chain.invoke({"input": query})
 
-print("\n" + "=" * 50)
-print("GENERATED LOCAL ANSWER (Gemma 2B):")
-print("=" * 50)
-print(response["answer"])
+    print("\n" + "=" * 50)
+    print("[Example 1 | generated answer]")
+    print("GENERATED LOCAL ANSWER (Gemma 2B):")
+    print("=" * 50)
+    print(response["answer"])
 
-print("\n" + "=" * 50)
-print(f"RETRIEVED CONTEXT EVIDENCE ({len(response['context'])} chunks):")
-print("=" * 50)
-for i, doc in enumerate(response["context"], start=1):
-    print(f"\n[Document Chunk {i}]")
-    print(doc.page_content[:250].strip() + "...\n")
+    print("\n" + "=" * 50)
+    print(f"[Example 1 | retrieved context] RETRIEVED CONTEXT EVIDENCE ({len(response['context'])} chunks):")
+    print("=" * 50)
+    for i, doc in enumerate(response["context"], start=1):
+        print(f"\n[Document Chunk {i}]")
+        print(doc.page_content[:250].strip() + "...\n")
+
+
+def main():
+
+    print("\n============================================")
+    print("LOCAL OLLAMA RAG")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_local_ollama_rag()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — Intro.py

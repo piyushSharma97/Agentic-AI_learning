@@ -12,6 +12,13 @@ Python provides five primary families of operators:
 3. Logical Operators: Combining boolean conditions (and, or, not).
 4. Bitwise Operators: Manipulating raw binary bits directly (useful in cryptography, flags, and systems).
 5. Assignment Operators: Updating variable values in place with shorthand arithmetic.
+
+JavaScript comparison:
+- + - * / % ** exist in both languages. ** means "to the power of" in both.
+- Python // is floor division. JavaScript has no // operator. Math.floor(a / b) is the match for positive numbers.
+- Python and, or, and not. JavaScript &&, ||, and !.
+- Python == compares values and does not turn "5" into 5. JavaScript === is the close match. JavaScript == does coerce types.
+- +=, -=, *=, and /= exist in both.
 """
 
 # ==================================================

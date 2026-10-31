@@ -8,6 +8,21 @@ What you will learn in this lesson:
 4. How the model uses the full conversation array to resolve referential questions ("What is my name?").
 """
 
+# ============================================================
+# LANGCHAIN: MANUAL CONVERSATION - COMPLETE PRACTICE FILE
+# ============================================================
+#
+# Examples covered:
+#
+# 1. Manual conversation — pass prior HumanMessage and AIMessage turns
+#
+# ============================================================
+
+
+# ============================================================
+# 1. IMPORTS AND ENVIRONMENT CONFIGURATION
+# ============================================================
+
 import os
 # os reads system environment variables such as GROQ_API_KEY.
 from dotenv import load_dotenv
@@ -31,34 +46,72 @@ if not api_key:
 
 model = ChatGroq(model=model_name, groq_api_key=api_key)
 
-# --------------------------------------------------
-# 2. Assembling Conversation History Manually
-# --------------------------------------------------
 
-# Large Language Models are completely stateless:
-# If you ask "Hi, my name is Krish" in call 1, and "What is my name?" in call 2,
-# call 2 has NO knowledge of call 1!
-#
-# To enable memory, we must construct a list containing the full dialogue history:
-# 1. Turn 1 Human: user introduces themselves
-# 2. Turn 1 AI: assistant greeted them
-# 3. Turn 2 Human: user asks a question referring back to Turn 1
-conversation = [
-    HumanMessage(content="Hi, my name is Krish."),
-    AIMessage(content="Hi Krish! Nice to meet you."),
-    HumanMessage(content="What is my name?"),
-]
+# ============================================================
+# EXAMPLE 1: MANUAL CONVERSATION
+# USE CASE: SIMULATING MEMORY BY PASSING HISTORY
+# ============================================================
 
-# --------------------------------------------------
-# 3. Invoking the Model with Multi-Turn Context
-# --------------------------------------------------
+def example_1_manual_conversation():
 
-# When the model processes this list, it reads all three messages in sequence.
-# It identifies that the human previously stated their name is "Krish" and responds accordingly.
-response = model.invoke(conversation)
+    print("\n========== EXAMPLE 1: MANUAL CONVERSATION ==========")
 
-print("Assistant response:")
-print(response.content)
+    # --------------------------------------------------
+    # 2. Assembling Conversation History Manually
+    # --------------------------------------------------
+
+    # Large Language Models are completely stateless:
+    # If you ask "Hi, my name is Krish" in call 1, and "What is my name?" in call 2,
+    # call 2 has NO knowledge of call 1!
+    #
+    # To enable memory, we must construct a list containing the full dialogue history:
+    # 1. Turn 1 Human: user introduces themselves
+    # 2. Turn 1 AI: assistant greeted them
+    # 3. Turn 2 Human: user asks a question referring back to Turn 1
+    conversation = [
+        HumanMessage(content="Hi, my name is Krish."),
+        AIMessage(content="Hi Krish! Nice to meet you."),
+        HumanMessage(content="What is my name?"),
+    ]
+
+    # --------------------------------------------------
+    # 3. Invoking the Model with Multi-Turn Context
+    # --------------------------------------------------
+
+    # When the model processes this list, it reads all three messages in sequence.
+    # It identifies that the human previously stated their name is "Krish" and responds accordingly.
+    response = model.invoke(conversation)
+
+    print("[Example 1 | manual conversation] Assistant reply:")
+    print(response.content)
+
+
+# ============================================================
+# 2. MAIN FUNCTION
+# ============================================================
+
+def main():
+
+    print("\n============================================")
+    print("LANGCHAIN - MANUAL CONVERSATION PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_manual_conversation()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 02_manual_conversation/main.py
@@ -90,4 +143,9 @@ print(response.content)
 # IF YOU FORGET HOW THIS WORKS, START HERE:
 # Look at the conversation list: [HumanMessage, AIMessage, HumanMessage].
 # Passing that whole list to model.invoke() is what gives the model memory.
+# ============================================================
+
+
+# ============================================================
+# END OF MANUAL CONVERSATION PRACTICE
 # ============================================================

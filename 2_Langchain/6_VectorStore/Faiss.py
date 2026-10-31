@@ -31,125 +31,135 @@ from langchain_huggingface import HuggingFaceEmbeddings
 load_dotenv()
 
 # --------------------------------------------------
-# 1. Locate and load the source text file
+# Path Helper
 # --------------------------------------------------
+# Resolve speech.txt beside this file first, with fallback to extra/speech.txt.
+lesson_dir = Path(__file__).resolve().parent
 
-# Resolve speech.txt path relative to this file first, with fallback to extra/speech.txt
-file_path = Path(__file__).resolve().parent / "speech.txt"
-if not file_path.exists():
-    file_path = Path(__file__).resolve().parent.parent.parent / "extra" / "speech.txt"
 
-if not file_path.exists():
-    raise FileNotFoundError(f"Could not locate document at {file_path}")
+def resolve_speech_txt_path():
+    """Locate speech.txt beside this lesson, then fall back to extra/speech.txt."""
+    speech_path = lesson_dir / "speech.txt"
+    if not speech_path.exists():
+        speech_path = lesson_dir.parent.parent / "extra" / "speech.txt"
+    if not speech_path.exists():
+        raise FileNotFoundError(f"Could not locate document at {speech_path}")
+    return speech_path
 
-print(f"Loading document from: {file_path}")
-loader = TextLoader(str(file_path), encoding="utf-8")
-documents = loader.load()
-print(f"Loaded {len(documents)} document(s)")
 
 # --------------------------------------------------
-# 2. Split the document into smaller chunks
+# One pipeline: load, chunk, index, save, search, reload, score, retrieve
 # --------------------------------------------------
-
+# Save and load stay in one function so uncommenting it still finds the index.
+#
 # Chunking splits long documents into smaller segments for precise semantic search.
 # Overlap ensures that contextual meaning across boundary sentences is not lost.
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=100,
-)
-
-chunks = text_splitter.split_documents(documents)
-print(f"Created {len(chunks)} text chunks")
-
-# --------------------------------------------------
-# 3. Configure the embedding model
-# --------------------------------------------------
-
+#
 # An embedding model converts human-readable text into dense mathematical vectors (arrays of floats).
 # Similar semantic meanings will be located close together in the vector space.
 # Here we use all-MiniLM-L6-v2 which runs quickly on local CPU.
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2",
-    model_kwargs={"device": "cpu"},
-)
-
-# --------------------------------------------------
-# 4. Create and persist the FAISS vector database
-# --------------------------------------------------
-
+#
 # FAISS.from_documents takes chunks, computes their embeddings, and indexes them in an in-memory FAISS index.
-print("\nIndexing chunks into FAISS vector store...")
-vector_db = FAISS.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-)
-
 # FAISS stores its index (faiss index file and docstore pickle) locally into a folder.
-persist_path = "./faiss_db"
-vector_db.save_local(persist_path)
-print(f"FAISS index successfully saved locally at '{persist_path}'")
-
-# --------------------------------------------------
-# 5. Search for relevant chunks (Similarity Search)
-# --------------------------------------------------
-
-query = (
-    "What does the speaker believe is the main reason "
-    "the United States should enter the war?"
-)
-
-print(f"\nQuerying: '{query}'")
+#
 # similarity_search returns the top k chunks closest in meaning to the query vector.
-results = vector_db.similarity_search(query, k=3)
-
-for index, document in enumerate(results, start=1):
-    print(f"\n--- Result {index} ---")
-    print(document.page_content.strip())
-
-# --------------------------------------------------
-# 6. Load the saved FAISS database from disk
-# --------------------------------------------------
-
+#
 # Reopening the persisted index requires providing the exact same embedding function.
 # allow_dangerous_deserialization=True is required by LangChain because FAISS uses Python's pickle
 # to serialize document metadata. Only set this to True when loading indices you trust.
-vector_db_loaded = FAISS.load_local(
-    persist_path,
-    embeddings,
-    allow_dangerous_deserialization=True,
-)
-print(f"\nReloaded FAISS index from '{persist_path}'")
-
-# --------------------------------------------------
-# 7. Similarity search with distance scores
-# --------------------------------------------------
-
+#
 # similarity_search_with_score returns pairs of (Document, score).
 # In FAISS with L2 distance, a LOWER score means closer distance / HIGHER similarity.
-scored_results = vector_db_loaded.similarity_search_with_score(query, k=3)
-
-print("\n--- Search Results with Distance Scores (Lower = More Relevant) ---")
-for document, score in scored_results:
-    print(f"\nDistance score (L2): {score:.4f}")
-    print(document.page_content.strip())
-
-# --------------------------------------------------
-# 8. Use FAISS as a LangChain Retriever
-# --------------------------------------------------
-
+#
 # Vector stores can be converted into standard LangChain Retrievers (Runnable).
 # Retrievers easily plug into LCEL chains (e.g., retriever | prompt | llm).
-retriever = vector_db_loaded.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 2},
-)
 
-retrieved_documents = retriever.invoke(query)
 
-print("\n--- Retrieved Chunks via Retriever Interface ---")
-for index, document in enumerate(retrieved_documents, start=1):
-    print(f"\n--- Retrieved chunk {index} ---")
-    print(document.page_content.strip())
+def example_1_faiss_save_load_and_search():
+    """Index speech.txt in FAISS, save it, reload it, and search with scores and a retriever."""
+    speech_path = resolve_speech_txt_path()
+
+    print(f"[Example 1 | FAISS] Loading document from: {speech_path}")
+    speech_loader = TextLoader(str(speech_path), encoding="utf-8")
+    speech_documents = speech_loader.load()
+    print(f"[Example 1 | FAISS] Documents loaded: {len(speech_documents)}")
+
+    speech_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=100,
+    )
+    speech_chunks = speech_splitter.split_documents(speech_documents)
+    print(f"[Example 1 | FAISS] Text chunks created: {len(speech_chunks)}")
+
+    minilm_embeddings = HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+    )
+
+    print("[Example 1 | FAISS] Indexing chunks into FAISS vector store...")
+    faiss_vector_store = FAISS.from_documents(
+        documents=speech_chunks,
+        embedding=minilm_embeddings,
+    )
+
+    faiss_persist_path = "./faiss_db"
+    faiss_vector_store.save_local(faiss_persist_path)
+    print(f"[Example 1 | FAISS] Index saved locally at '{faiss_persist_path}'")
+
+    war_reason_query = (
+        "What does the speaker believe is the main reason "
+        "the United States should enter the war?"
+    )
+    print(f"[Example 1 | FAISS] Query: '{war_reason_query}'")
+
+    similar_chunks = faiss_vector_store.similarity_search(war_reason_query, k=3)
+    for chunk_number, similar_chunk in enumerate(similar_chunks, start=1):
+        print(f"[Example 1 | FAISS] Result {chunk_number}: {similar_chunk.page_content.strip()}")
+
+    loaded_faiss_store = FAISS.load_local(
+        faiss_persist_path,
+        minilm_embeddings,
+        allow_dangerous_deserialization=True,
+    )
+    print(f"[Example 1 | FAISS] Reloaded index from '{faiss_persist_path}'")
+
+    scored_chunks = loaded_faiss_store.similarity_search_with_score(war_reason_query, k=3)
+    print("[Example 1 | FAISS] Search results with distance scores (lower = more relevant):")
+    for scored_chunk, distance_score in scored_chunks:
+        print(f"[Example 1 | FAISS score] Distance score (L2): {distance_score:.4f}")
+        print(f"[Example 1 | FAISS score] Chunk: {scored_chunk.page_content.strip()}")
+
+    faiss_retriever = loaded_faiss_store.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 2},
+    )
+    retriever_documents = faiss_retriever.invoke(war_reason_query)
+
+    print("[Example 1 | FAISS retriever] Retrieved chunks via Retriever interface:")
+    for chunk_number, retrieved_chunk in enumerate(retriever_documents, start=1):
+        print(f"[Example 1 | FAISS retriever] Retrieved chunk {chunk_number}: {retrieved_chunk.page_content.strip()}")
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - FAISS VECTOR STORE PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_faiss_save_load_and_search()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — Faiss.py

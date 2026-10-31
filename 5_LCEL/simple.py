@@ -56,7 +56,7 @@ model = ChatGroq(
     model="openai/gpt-oss-120b",
     # The specific model to use
     # Groq hosts many open source models
-    
+
     temperature=0,
     # Controls randomness of responses
     # 0 = deterministic (same input always gives same output)
@@ -65,41 +65,82 @@ model = ChatGroq(
 )
 
 
+def _translation_messages():
+    """Same English-to-French messages used by the direct-invoke examples."""
+    return [
+        SystemMessage(
+            content="Translate the following from English to French."
+            # This tells the AI its role and task
+            # Always comes first in the messages list
+        ),
+        HumanMessage(
+            content="Hello, how are you? I am Piyush Sharma a frontend Dev learning AI"
+            # This is the actual text to translate
+        ),
+    ]
+
+
+def _translation_prompt():
+    """Reusable translation template used by the prompt examples."""
+    generic_template = (
+        "Translate the following text into {language}. "
+        "Return only the translated text."
+        # {language} is a placeholder — gets filled in later
+        # This template works for ANY language, not just French
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", generic_template),
+            # System message uses the template with {language} variable
+
+            ("human", "{text}"),
+            # Human message uses {text} variable — the content to translate
+        ]
+    )
+    # ChatPromptTemplate is a factory that creates properly formatted
+    # messages when you give it the variable values
+    return prompt
+
+
 # --------------------------------------------------
 # 3. Direct message approach (simplest way)
 # --------------------------------------------------
 
-messages = [
-    SystemMessage(
-        content="Translate the following from English to French."
-        # This tells the AI its role and task
-        # Always comes first in the messages list
-    ),
-    HumanMessage(
-        content="Hello, how are you? I am Piyush Sharma a frontend Dev learning AI"
-        # This is the actual text to translate
-    ),
-]
+def example_1_direct_messages():
+    # --------------------------------------------------
+    # 3. Direct message approach (simplest way)
+    # --------------------------------------------------
 
-result = model.invoke(messages)
-# .invoke() sends the messages to the LLM and waits for response
-# result is an AIMessage object — contains content + metadata
-print(f"result=>", result.content)
-# result.content extracts just the text from the AIMessage object
+    direct_messages = _translation_messages()
+
+    result = model.invoke(direct_messages)
+    # .invoke() sends the messages to the LLM and waits for response
+    # result is an AIMessage object — contains content + metadata
+    print("[Example 1 | direct message translation]", result.content)
+    # result.content extracts just the text from the AIMessage object
 
 
 # --------------------------------------------------
 # 4. Output parser — cleaner way to get text
 # --------------------------------------------------
 
-parser = StrOutputParser()
-# Creates a parser that extracts string content from LLM responses
+def example_2_str_output_parser():
+    # --------------------------------------------------
+    # 4. Output parser — cleaner way to get text
+    # --------------------------------------------------
 
-parsed_result = parser.invoke(result)
-# Takes the AIMessage object from step 3
-# Returns just the plain text string — no metadata, no AIMessage wrapper
-print(f"parsed_result => {parsed_result}")
-# Same content as result.content but done through the parser pipeline
+    # This example invokes the model itself so it can run without Example 1.
+    result = model.invoke(_translation_messages())
+
+    parser = StrOutputParser()
+    # Creates a parser that extracts string content from LLM responses
+
+    parsed_translation = parser.invoke(result)
+    # Takes the AIMessage object from the direct invoke above
+    # Returns just the plain text string — no metadata, no AIMessage wrapper
+    print("[Example 2 | parsed translation]", parsed_translation)
+    # Same content as result.content but done through the parser pipeline
 
 
 # --------------------------------------------------
@@ -107,58 +148,54 @@ print(f"parsed_result => {parsed_result}")
 # THE MOST IMPORTANT CONCEPT IN THIS FILE
 # --------------------------------------------------
 
-chain = model | parser
-# The pipe operator | is LCEL (LangChain Expression Language)
-# It chains components together like a pipeline
-# Data flows left to right:
-# messages → model (gets AI response) → parser (extracts text)
-#
-# This is equivalent to:
-# result = model.invoke(messages)
-# final = parser.invoke(result)
-# But written in one clean line
+def example_3_model_parser_chain():
+    # --------------------------------------------------
+    # 5. LCEL Chain — model | parser
+    # THE MOST IMPORTANT CONCEPT IN THIS FILE
+    # --------------------------------------------------
 
-response = chain.invoke(messages)
-# Now you invoke the whole chain at once
-# LangChain handles passing output of each step to the next
-print(f"response=>{response}")
+    parser = StrOutputParser()
+
+    chain = model | parser
+    # The pipe operator | is LCEL (LangChain Expression Language)
+    # It chains components together like a pipeline
+    # Data flows left to right:
+    # messages → model (gets AI response) → parser (extracts text)
+    #
+    # This is equivalent to:
+    # result = model.invoke(messages)
+    # final = parser.invoke(result)
+    # But written in one clean line
+
+    lcel_chain_response = chain.invoke(_translation_messages())
+    # Now you invoke the whole chain at once
+    # LangChain handles passing output of each step to the next
+    print("[Example 3 | model-parser chain response]", lcel_chain_response)
 
 
 # --------------------------------------------------
 # 6. Prompt Templates — reusable prompts with variables
 # --------------------------------------------------
 
-generic_template = (
-    "Translate the following text into {language}. "
-    "Return only the translated text."
-    # {language} is a placeholder — gets filled in later
-    # This template works for ANY language, not just French
-)
+def example_4_chat_prompt_template():
+    # --------------------------------------------------
+    # 6. Prompt Templates — reusable prompts with variables
+    # --------------------------------------------------
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", generic_template),
-        # System message uses the template with {language} variable
-        
-        ("human", "{text}"),
-        # Human message uses {text} variable — the content to translate
-    ]
-)
-# ChatPromptTemplate is a factory that creates properly formatted
-# messages when you give it the variable values
+    prompt = _translation_prompt()
 
-prompt_result = prompt.invoke(
-    {
-        "language": "French",  # fills {language} in the template
-        "text": "Hello",       # fills {text} in the human message
-    }
-)
-# Returns a list of properly formatted messages
-# Ready to be passed to the model
+    prompt_preview = prompt.invoke(
+        {
+            "language": "French",  # fills {language} in the template
+            "text": "Hello",       # fills {text} in the human message
+        }
+    )
+    # Returns a list of properly formatted messages
+    # Ready to be passed to the model
 
-print(prompt_result.to_messages())
-# Shows the final messages that will be sent to the LLM
-# Useful for debugging — see exactly what the AI receives
+    print("[Example 4 | prompt preview]", prompt_preview.to_messages())
+    # Shows the final messages that will be sent to the LLM
+    # Useful for debugging — see exactly what the AI receives
 
 
 # --------------------------------------------------
@@ -166,25 +203,65 @@ print(prompt_result.to_messages())
 # THE COMPLETE PATTERN YOU WILL USE EVERYWHERE
 # --------------------------------------------------
 
-translation_chain = prompt | model | parser
-# The complete pipeline:
-# 1. prompt: takes {language} and {text} → creates formatted messages
-# 2. model: takes messages → returns AIMessage with translation
-# 3. parser: takes AIMessage → returns clean string
-#
-# This is the standard LangChain pattern for production applications
-# You will see prompt | model | parser in almost every LangChain project
+def example_5_full_chain():
+    # --------------------------------------------------
+    # 7. Full LCEL Chain — prompt | model | parser
+    # THE COMPLETE PATTERN YOU WILL USE EVERYWHERE
+    # --------------------------------------------------
 
-response = translation_chain.invoke(
-    {
-        "language": "French",
-        "text": "Hello, how are you?",
-        # Just provide the variables — the chain handles everything else
-    }
-)
+    parser = StrOutputParser()
+    prompt = _translation_prompt()
 
-print("Translation:", response)
-# Final clean translated text — no AIMessage, no metadata, just the answer
+    translation_chain = prompt | model | parser
+    # The complete pipeline:
+    # 1. prompt: takes {language} and {text} → creates formatted messages
+    # 2. model: takes messages → returns AIMessage with translation
+    # 3. parser: takes AIMessage → returns clean string
+    #
+    # This is the standard LangChain pattern for production applications
+    # You will see prompt | model | parser in almost every LangChain project
+
+    full_chain_translation = translation_chain.invoke(
+        {
+            "language": "French",
+            "text": "Hello, how are you?",
+            # Just provide the variables — the chain handles everything else
+        }
+    )
+
+    print("[Example 5 | full chain translation]", full_chain_translation)
+    # Final clean translated text — no AIMessage, no metadata, just the answer
+
+
+def main():
+
+    print("\n============================================")
+    print("LCEL - SIMPLE LLM APPLICATION")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_direct_messages()
+
+    # example_2_str_output_parser()
+
+    # example_3_model_parser_chain()
+
+    # example_4_chat_prompt_template()
+
+    # example_5_full_chain()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
 
 
 # ============================================================

@@ -24,84 +24,141 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 
 # --------------------------------------------------
-# 1. Initialize Local Hugging Face Embedding Model
+# Path Helper
 # --------------------------------------------------
+# This file lives in 5_Embedding, so parent.parent is the repo root
+# and parent is the 2_Langchain folder.
+lesson_dir = Path(__file__).resolve().parent
 
-# Parameters:
-# • model_name="all-MiniLM-L6-v2": Standard lightweight sentence-transformer model (384 dimensions).
-# • model_kwargs={"device": "cpu"}: Explicitly runs on CPU (use "cuda" if you have an NVIDIA GPU).
-print("Step 1: Loading Hugging Face sentence-transformer model (all-MiniLM-L6-v2)...")
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2",
-    model_kwargs={"device": "cpu"},
-)
-print("Model loaded successfully into memory.")
+
+def resolve_speech_txt_path():
+    """Locate extra/speech.txt first, then fall back to the transformer lesson copy."""
+    speech_path = lesson_dir.parent.parent / "extra" / "speech.txt"
+    if not speech_path.exists():
+        speech_path = lesson_dir.parent / "04_Data Trnasformer" / "speech.txt"
+    return speech_path
+
+
+def build_minilm_embeddings():
+    """Load all-MiniLM-L6-v2 on CPU. Each example calls this so it can run alone."""
+    # Parameters:
+    # • model_name="all-MiniLM-L6-v2": Standard lightweight sentence-transformer model (384 dimensions).
+    # • model_kwargs={"device": "cpu"}: Explicitly runs on CPU (use "cuda" if you have an NVIDIA GPU).
+    return HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+    )
+
 
 # --------------------------------------------------
-# 2. Comparing embed_query vs embed_documents
+# 1. embed_query — one search string becomes one vector
 # --------------------------------------------------
-
-# Case A: embed_query()
-# Use this when the user submits a single question or search term.
 # Input: str -> Output: list[float] (1D vector)
-sample_query = "What is semantic search?"
-query_vector = embeddings.embed_query(sample_query)
-print(f"\nembed_query vector dimensions: {len(query_vector)}")  # 384 dimensions
-print(f"Sample vector values: {query_vector[:4]}")
+# Use this when the user submits a single question or search term.
 
-# Case B: embed_documents()
-# Use this when indexing multiple passages or chunks at once.
+
+def example_1_embed_query():
+    """Embed a single question with the local MiniLM model."""
+    print("[Example 1 | embed_query] Loading Hugging Face sentence-transformer model (all-MiniLM-L6-v2)...")
+    minilm_embeddings = build_minilm_embeddings()
+    print("[Example 1 | embed_query] Model loaded successfully into memory.")
+
+    semantic_search_query = "What is semantic search?"
+    semantic_search_vector = minilm_embeddings.embed_query(semantic_search_query)
+    print(f"[Example 1 | embed_query] Vector dimensions: {len(semantic_search_vector)}")
+    print(f"[Example 1 | embed_query] Sample vector values: {semantic_search_vector[:4]}")
+
+
+# --------------------------------------------------
+# 2. embed_documents — a list of passages becomes a list of vectors
+# --------------------------------------------------
 # Input: list[str] -> Output: list[list[float]] (2D array of vectors)
-sample_documents = [
-    "This is the first document chunk.",
-    "This is the second document chunk.",
-]
-doc_vectors = embeddings.embed_documents(sample_documents)
-print(f"embed_documents total vectors: {len(doc_vectors)}")
-print(f"Dimensions of each document vector: {len(doc_vectors[0])}")
+# Use this when indexing multiple passages or chunks at once.
+
+
+def example_2_embed_documents():
+    """Batch-embed two short passages with the local MiniLM model."""
+    print("[Example 2 | embed_documents] Loading Hugging Face sentence-transformer model (all-MiniLM-L6-v2)...")
+    minilm_embeddings = build_minilm_embeddings()
+    print("[Example 2 | embed_documents] Model loaded successfully into memory.")
+
+    sample_passage_texts = [
+        "This is the first document chunk.",
+        "This is the second document chunk.",
+    ]
+    sample_passage_vectors = minilm_embeddings.embed_documents(sample_passage_texts)
+    print(f"[Example 2 | embed_documents] Total vectors: {len(sample_passage_vectors)}")
+    print(f"[Example 2 | embed_documents] Dimensions of each document vector: {len(sample_passage_vectors[0])}")
+
 
 # --------------------------------------------------
-# 3. Load Document and Split into Chunks
+# 3. Load, split, index in Chroma, and search
 # --------------------------------------------------
+# These steps stay together: similarity_search needs the index built in this same run.
+# Chroma computes embeddings locally using the Hugging Face model and creates the index in memory.
+# similarity_search returns the top k=3 chunks most relevant in meaning.
 
-# Resolve speech.txt path robustly
-file_path = Path(__file__).resolve().parent.parent.parent / "extra" / "speech.txt"
-if not file_path.exists():
-    file_path = Path(__file__).resolve().parent.parent / "04_Data Trnasformer" / "speech.txt"
 
-print(f"\nStep 2: Loading source text from: {file_path.name}")
-loader = TextLoader(str(file_path), encoding="utf-8")
-docs = loader.load()
+def example_3_chroma_similarity_search():
+    """Chunk speech.txt, index it with MiniLM in Chroma, and search."""
+    print("[Example 3 | Chroma] Loading Hugging Face sentence-transformer model (all-MiniLM-L6-v2)...")
+    minilm_embeddings = build_minilm_embeddings()
+    print("[Example 3 | Chroma] Model loaded successfully into memory.")
 
-# Split into 60-character chunks with 20-character overlap
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=60,
-    chunk_overlap=20,
-)
-chunks = splitter.split_documents(docs)
-print(f"Generated {len(chunks)} chunks for vector indexing.")
+    speech_path = resolve_speech_txt_path()
+    print(f"[Example 3 | Chroma] Loading source text from: {speech_path.name}")
+    speech_loader = TextLoader(str(speech_path), encoding="utf-8")
+    speech_docs = speech_loader.load()
 
-# --------------------------------------------------
-# 4. Build Chroma Vector Store & Run Semantic Search
-# --------------------------------------------------
+    # Split into 60-character chunks with 20-character overlap
+    speech_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=60,
+        chunk_overlap=20,
+    )
+    speech_chunks = speech_splitter.split_documents(speech_docs)
+    print(f"[Example 3 | Chroma] Chunks generated for vector indexing: {len(speech_chunks)}")
 
-# Chroma computes embeddings locally using our Hugging Face model and creates the index in memory.
-print("\nStep 3: Indexing chunks in Chroma vector store...")
-db = Chroma.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-)
+    print("[Example 3 | Chroma] Indexing chunks in Chroma vector store...")
+    speech_vector_store = Chroma.from_documents(
+        documents=speech_chunks,
+        embedding=minilm_embeddings,
+    )
 
-query = "What does the speech say about belligerents?"
-print(f"\nStep 4: Searching Chroma for query: \"{query}\"")
+    belligerents_query = "What does the speech say about belligerents?"
+    print(f"[Example 3 | Chroma] Search query: \"{belligerents_query}\"")
 
-# similarity_search returns the top k=3 chunks most relevant in meaning
-results = db.similarity_search(query, k=3)
+    belligerent_matches = speech_vector_store.similarity_search(belligerents_query, k=3)
 
-for i, result in enumerate(results, start=1):
-    print(f"\n--- Result {i} ---")
-    print(f"Content: \"{result.page_content}\"")
-    print(f"Source Metadata: {result.metadata.get('source')}")
+    for match_number, belligerent_match in enumerate(belligerent_matches, start=1):
+        print(f"[Example 3 | Chroma] Result {match_number} content: \"{belligerent_match.page_content}\"")
+        print(
+            f"[Example 3 | Chroma] Result {match_number} source metadata: "
+            f"{belligerent_match.metadata.get('source')}"
+        )
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - HUGGING FACE EMBEDDINGS PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_embed_query()
+    # example_2_embed_documents()
+    # example_3_chroma_similarity_search()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — huggingface.py

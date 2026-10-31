@@ -14,6 +14,13 @@ Core Syntax Rules Covered:
 2. Indentation: Whitespace at the start of a line defines scope and code blocks (no curly braces {} needed!).
 3. Line Continuation: Splitting long mathematical or string expressions across multiple physical lines.
 4. Multiple Statements: Using semicolons (;) to execute multiple instructions in a single line.
+
+JavaScript comparison:
+- Python blocks are indented. JavaScript blocks sit inside curly braces { }.
+- Both languages are case-sensitive: name and Name are different variables.
+- A Python comment starts with #. A JavaScript line comment starts with //.
+- Python does not use a semicolon to end a line. JavaScript often writes one, but it can omit it.
+- A trailing backslash continues one Python statement onto the next line. JavaScript continues a statement automatically inside (), [], and {}.
 """
 
 # --------------------------------------------------

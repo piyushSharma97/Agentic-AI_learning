@@ -19,6 +19,12 @@ elif condition_2:
     # Runs if condition_1 was False, BUT condition_2 is True
 else:
     # Runs if NONE of the above conditions were True
+
+JavaScript comparison:
+- Python if / elif / else. JavaScript if / else if / else.
+- Python starts the block with a colon and indentation. JavaScript uses parentheses around the test and curly braces around the block.
+- Python and / or. JavaScript && / ||.
+- There is no switch in this file. See 2.3-match-case.py for Python match, which is the switch equivalent.
 """
 
 # --------------------------------------------------

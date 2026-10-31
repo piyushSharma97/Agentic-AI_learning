@@ -13,6 +13,13 @@ Why Loops are Fundamental in Generative AI:
 Loop Types:
 • For Loop (Definite Iteration): Executes a fixed number of times over an iterable collection (list, string, range).
 • While Loop (Indefinite Iteration): Repeatedly executes as long as a boolean condition remains True.
+
+JavaScript comparison:
+- Python for item in items. JavaScript for (const item of items).
+- Python for i in range(n). JavaScript for (let i = 0; i < n; i++).
+- Python while condition. JavaScript while (condition).
+- break and continue exist in both and mean the same thing.
+- Python's for/else has no JavaScript equivalent. The else block runs only when the loop never hit break.
 """
 
 # ==================================================

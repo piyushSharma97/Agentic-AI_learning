@@ -24,67 +24,96 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # --------------------------------------------------
-# 1. Resolve Path and Load Multi-Page PDF
+# Path Helper
 # --------------------------------------------------
-
-# Resolve attention.pdf relative to this script with fallback
+# Resolve attention.pdf relative to this script with fallback.
 current_dir = Path(__file__).resolve().parent
-pdf_path = current_dir / "attention.pdf"
-if not pdf_path.exists():
-    pdf_path = current_dir.parent / "03_DataIngestion" / "attention.pdf"
 
-if not pdf_path.exists():
-    raise FileNotFoundError(f"Could not locate attention.pdf at {pdf_path}")
 
-print(f"Step 1: Loading PDF from {pdf_path.name}")
-loader = PyPDFLoader(str(pdf_path))
-docs = loader.load()
+def resolve_attention_pdf_path():
+    """Locate attention.pdf beside this lesson, then fall back to 03_DataIngestion."""
+    pdf_path = current_dir / "attention.pdf"
+    if not pdf_path.exists():
+        pdf_path = current_dir.parent / "03_DataIngestion" / "attention.pdf"
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"Could not locate attention.pdf at {pdf_path}")
+    return pdf_path
 
-print(f"Total pages extracted from PDF: {len(docs)}")
-print(f"Page 1 character count: {len(docs[0].page_content)}")
 
 # --------------------------------------------------
-# 2. Configure RecursiveCharacterTextSplitter
+# One pipeline: load the PDF, split every page, then inspect chunks
 # --------------------------------------------------
-
 # Configuration Parameters:
 # • chunk_size=80: Target character limit per chunk.
 # • chunk_overlap=20: Number of overlapping characters to preserve across chunk transitions.
 # • separators: By default ["\n\n", "\n", " ", ""], but can be customized (e.g. for Python code, Markdown, or JSON).
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=80,
-    chunk_overlap=20,
-)
-
-# --------------------------------------------------
-# 3. Recursively Split Document Pages into Chunks
-# --------------------------------------------------
-
-# split_documents iterates over every Document (page) in docs, splits each page's content,
+#
+# split_documents iterates over every Document (page), splits each page's content,
 # and returns a flat list of smaller Document chunks.
 # Crucially, page metadata (e.g. {'page': 0, 'source': 'attention.pdf'}) is carried forward into every child chunk!
-final_documents = text_splitter.split_documents(docs)
 
-print(f"\nStep 2: Splitting completed.")
-print(f"Generated {len(final_documents)} chunks from {len(docs)} PDF pages.")
 
-# --------------------------------------------------
-# 4. Inspect Resulting Chunks and Metadata
-# --------------------------------------------------
+def example_1_recursive_split_pdf():
+    """Load attention.pdf and recursively split each page into overlapping chunks."""
+    pdf_path = resolve_attention_pdf_path()
 
-print("\n--- Inspecting Chunk 0 ---")
-print(f"Content: \"{final_documents[0].page_content}\"")
-print(f"Metadata: {final_documents[0].metadata}")
+    print(f"[Example 1 | RecursiveCharacterTextSplitter] Loading PDF from: {pdf_path.name}")
+    pdf_loader = PyPDFLoader(str(pdf_path))
+    pdf_pages = pdf_loader.load()
 
-if len(final_documents) > 1:
-    print("\n--- Inspecting Chunk 1 (Notice the overlap!) ---")
-    print(f"Content: \"{final_documents[1].page_content}\"")
-    print(f"Metadata: {final_documents[1].metadata}")
+    print(f"[Example 1 | RecursiveCharacterTextSplitter] Pages extracted from PDF: {len(pdf_pages)}")
+    print(
+        f"[Example 1 | RecursiveCharacterTextSplitter] Page 1 character count: "
+        f"{len(pdf_pages[0].page_content)}"
+    )
 
-if len(final_documents) > 2:
-    print("\n--- Inspecting Chunk 2 ---")
-    print(f"Content: \"{final_documents[2].page_content}\"")
-    print(f"Metadata: {final_documents[2].metadata}")
+    recursive_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=80,
+        chunk_overlap=20,
+    )
+    pdf_chunks = recursive_splitter.split_documents(pdf_pages)
+
+    print(f"[Example 1 | RecursiveCharacterTextSplitter] Splitting completed.")
+    print(
+        f"[Example 1 | RecursiveCharacterTextSplitter] Chunks generated: {len(pdf_chunks)} "
+        f"from {len(pdf_pages)} PDF pages"
+    )
+
+    print(f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 0 content: \"{pdf_chunks[0].page_content}\"")
+    print(f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 0 metadata: {pdf_chunks[0].metadata}")
+
+    if len(pdf_chunks) > 1:
+        print(
+            f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 1 content (notice the overlap): "
+            f"\"{pdf_chunks[1].page_content}\""
+        )
+        print(f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 1 metadata: {pdf_chunks[1].metadata}")
+
+    if len(pdf_chunks) > 2:
+        print(f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 2 content: \"{pdf_chunks[2].page_content}\"")
+        print(f"[Example 1 | RecursiveCharacterTextSplitter] Chunk 2 metadata: {pdf_chunks[2].metadata}")
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - RECURSIVE TEXT SPLITTER PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_recursive_split_pdf()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — RecuriveCharactertextsplitte.py

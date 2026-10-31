@@ -42,71 +42,116 @@ if not api_key:
     print("Warning: OPENAI_API_KEY is not set in environment or .env file.")
 
 # --------------------------------------------------
+# Path Helper
+# --------------------------------------------------
+# This file lives in 5_Embedding, so parent.parent is the repo root
+# and parent is the 2_Langchain folder.
+lesson_dir = Path(__file__).resolve().parent
+
+
+def resolve_speech_txt_path():
+    """Locate extra/speech.txt first, then fall back to the transformer lesson copy."""
+    speech_path = lesson_dir.parent.parent / "extra" / "speech.txt"
+    if not speech_path.exists():
+        speech_path = lesson_dir.parent / "04_Data Trnasformer" / "speech.txt"
+    return speech_path
+
+
+# --------------------------------------------------
 # 2. Creating Full-Dimension OpenAI Embeddings (3072 dims)
 # --------------------------------------------------
-
-# text-embedding-3-large defaults to 3072 floating point values per vector
-embeddings_default = OpenAIEmbeddings(model="text-embedding-3-large")
-
-text = "This is a tutorial on OPENAI embedding"
-
+# text-embedding-3-large defaults to 3072 floating point values per vector.
 # embed_query() is designed to embed a SINGLE query string -> returns list[float]
-query_result = embeddings_default.embed_query(text)
 
-print(f"Default embedding model: text-embedding-3-large")
-print(f"Vector Dimensions: {len(query_result)}")  # 3072
-print(f"Data Type: {type(query_result)}")           # <class 'list'>
-print(f"First 5 vector coordinates: {query_result[:5]}")
+
+def example_1_full_dimension_embedding():
+    """Embed one sentence with the default 3072-dimension OpenAI model."""
+    full_dimension_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    embedding_tutorial_text = "This is a tutorial on OPENAI embedding"
+    full_dimension_vector = full_dimension_embeddings.embed_query(embedding_tutorial_text)
+
+    print("[Example 1 | OpenAIEmbeddings] Default embedding model: text-embedding-3-large")
+    print(f"[Example 1 | OpenAIEmbeddings] Vector dimensions: {len(full_dimension_vector)}")
+    print(f"[Example 1 | OpenAIEmbeddings] Data type: {type(full_dimension_vector)}")
+    print(f"[Example 1 | OpenAIEmbeddings] First 5 vector coordinates: {full_dimension_vector[:5]}")
+
 
 # --------------------------------------------------
 # 3. Custom Dimensions via Matryoshka Learning (1024 dims)
 # --------------------------------------------------
-
 # By passing dimensions=1024, OpenAI truncates the vector without retraining.
 # This cuts database storage costs in third while maintaining ~98% of search accuracy!
-embeddings_1024 = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1024)
 
-query_result_1024 = embeddings_1024.embed_query(text)
 
-print(f"\nCustom embedding model (Truncated):")
-print(f"Vector Dimensions: {len(query_result_1024)}")  # 1024
-print(f"First 5 vector coordinates: {query_result_1024[:5]}")
+def example_2_truncated_dimension_embedding():
+    """Embed the same sentence with the vector truncated to 1024 dimensions."""
+    truncated_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1024)
+    embedding_tutorial_text = "This is a tutorial on OPENAI embedding"
+    truncated_vector = truncated_embeddings.embed_query(embedding_tutorial_text)
 
-# --------------------------------------------------
-# 4. Building an End-to-End Vector Index with ChromaDB
-# --------------------------------------------------
+    print("[Example 2 | OpenAIEmbeddings] Custom embedding model (truncated)")
+    print(f"[Example 2 | OpenAIEmbeddings] Vector dimensions: {len(truncated_vector)}")
+    print(f"[Example 2 | OpenAIEmbeddings] First 5 vector coordinates: {truncated_vector[:5]}")
 
-# Resolve speech.txt path robustly
-file_path = Path(__file__).resolve().parent.parent.parent / "extra" / "speech.txt"
-if not file_path.exists():
-    file_path = Path(__file__).resolve().parent.parent / "04_Data Trnasformer" / "speech.txt"
-
-print(f"\nLoading source speech from: {file_path}")
-loader = TextLoader(str(file_path), encoding="utf-8")
-docs = loader.load()
-
-# Split speech into 70-character chunks with 20-character overlap
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=70, chunk_overlap=20)
-final_documents = text_splitter.split_documents(docs)
-print(f"Generated {len(final_documents)} chunks for indexing.")
 
 # --------------------------------------------------
-# 5. Indexing Documents and Executing Semantic Search
+# 4-5. Build an in-memory Chroma index and run semantic search
 # --------------------------------------------------
-
-# Chroma.from_documents takes chunks, calls embeddings_1024.embed_documents(),
+# Load, split, index, and search stay in one function because the search
+# needs the index built in this same run.
+# Chroma.from_documents takes chunks, calls embeddings.embed_documents(),
 # and builds an in-memory vector index.
-db = Chroma.from_documents(final_documents, embeddings_1024)
+# similarity_search embeds the query string and retrieves the most geometrically similar chunks.
 
-query = "It will be all the easier for us to conduct ourselves as belligerents"
-print(f"\nSearching for semantic match for query:\n  \"{query}\"")
 
-# similarity_search embeds the query string and retrieves the most geometrically similar chunks
-retrieved_results = db.similarity_search(query, k=2)
+def example_3_chroma_similarity_search():
+    """Chunk speech.txt, index it in Chroma at 1024 dimensions, and search."""
+    truncated_embeddings = OpenAIEmbeddings(model="text-embedding-3-large", dimensions=1024)
 
-print(f"Number of retrieved results: {len(retrieved_results)}")
-for i, res in enumerate(retrieved_results, start=1):
-    print(f"\nMatch {i}:\n  \"{res.page_content}\"")
+    speech_path = resolve_speech_txt_path()
+    print(f"[Example 3 | Chroma] Loading source speech from: {speech_path}")
+    speech_loader = TextLoader(str(speech_path), encoding="utf-8")
+    speech_docs = speech_loader.load()
+
+    # Split speech into 70-character chunks with 20-character overlap
+    speech_splitter = RecursiveCharacterTextSplitter(chunk_size=70, chunk_overlap=20)
+    speech_chunks = speech_splitter.split_documents(speech_docs)
+    print(f"[Example 3 | Chroma] Chunks generated for indexing: {len(speech_chunks)}")
+
+    speech_vector_store = Chroma.from_documents(speech_chunks, truncated_embeddings)
+
+    belligerents_query = "It will be all the easier for us to conduct ourselves as belligerents"
+    print(f"[Example 3 | Chroma] Semantic search query: \"{belligerents_query}\"")
+
+    belligerent_matches = speech_vector_store.similarity_search(belligerents_query, k=2)
+
+    print(f"[Example 3 | Chroma] Retrieved results: {len(belligerent_matches)}")
+    for match_number, belligerent_match in enumerate(belligerent_matches, start=1):
+        print(f"[Example 3 | Chroma] Match {match_number}: \"{belligerent_match.page_content}\"")
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - OPENAI EMBEDDINGS PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_full_dimension_embedding()
+    # example_2_truncated_dimension_embedding()
+    # example_3_chroma_similarity_search()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — embedding.py

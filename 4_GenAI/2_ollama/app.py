@@ -40,20 +40,6 @@ if langsmith_api_key:
     )
 
 # --------------------------------------------------
-# 2. Streamlit Web Page Configuration
-# --------------------------------------------------
-
-# Must be the first Streamlit command called in your script.
-st.set_page_config(
-    page_title="Gemma AI Chat",
-    page_icon="🤖",
-    layout="centered",
-)
-
-st.title("🤖 LangChain Chat with Local Gemma")
-st.caption("Ask questions powered completely by your local computer via Ollama — zero cloud cost, 100% private.")
-
-# --------------------------------------------------
 # 3. Model & Pipeline Initialization (Cached)
 # --------------------------------------------------
 
@@ -61,6 +47,7 @@ st.caption("Ask questions powered completely by your local computer via Ollama �
 # Without `@st.cache_resource`, Streamlit would re-create `ChatOllama` and rebuild the chain
 # on EVERY SINGLE user input, creating massive performance overhead.
 # `@st.cache_resource` creates the chain ONCE and caches the object in memory across reruns!
+# This function stays at module level so Streamlit's cache can identify it across reruns.
 @st.cache_resource
 def create_chain():
     """Builds and caches the prompt -> model -> parser pipeline."""
@@ -84,57 +71,81 @@ def create_chain():
     output_parser = StrOutputParser()
     return prompt | llm | output_parser
 
-chain = create_chain()
 
-# --------------------------------------------------
-# 4. Session State & Chat History Persistence
-# --------------------------------------------------
+# This file is the app entry, not a commented demo.
+# `streamlit run app.py` calls main() and shows the chatbot.
+def main():
+    # --------------------------------------------------
+    # 2. Streamlit Web Page Configuration
+    # --------------------------------------------------
 
-# In Streamlit, normal Python variables reset when the page reruns.
-# `st.session_state` acts like a dictionary that persists for the user's active browser session.
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Re-render existing chat history on every rerun so previous messages stay visible
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# --------------------------------------------------
-# 5. User Input Handling & Streaming/Generating Output
-# --------------------------------------------------
-
-# st.chat_input renders an input box anchored at the bottom of the screen.
-question = st.chat_input("What would you like to ask?")
-
-if question:
-    # 1. Append user's message to session_state
-    st.session_state.messages.append(
-        {"role": "user", "content": question}
+    # Must be the first Streamlit command called in your script.
+    st.set_page_config(
+        page_title="Gemma AI Chat",
+        page_icon="🤖",
+        layout="centered",
     )
 
-    # 2. Display the user message immediately in the UI
-    with st.chat_message("user"):
-        st.markdown(question)
+    st.title("🤖 LangChain Chat with Local Gemma")
+    st.caption("Ask questions powered completely by your local computer via Ollama — zero cloud cost, 100% private.")
 
-    # 3. Generate response using local model inside a loading spinner
-    try:
-        with st.chat_message("assistant"):
-            with st.spinner("Gemma is thinking..."):
-                response = chain.invoke({"question": question})
-                st.markdown(response)
+    # Cached chain: create_chain is defined at module level so @st.cache_resource still works.
+    chain = create_chain()
 
-        # 4. Save assistant reply to session_state so it persists on subsequent turns
+    # --------------------------------------------------
+    # 4. Session State & Chat History Persistence
+    # --------------------------------------------------
+
+    # In Streamlit, normal Python variables reset when the page reruns.
+    # `st.session_state` acts like a dictionary that persists for the user's active browser session.
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Re-render existing chat history on every rerun so previous messages stay visible
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # --------------------------------------------------
+    # 5. User Input Handling & Streaming/Generating Output
+    # --------------------------------------------------
+
+    # st.chat_input renders an input box anchored at the bottom of the screen.
+    question = st.chat_input("What would you like to ask?")
+
+    if question:
+        # 1. Append user's message to session_state
         st.session_state.messages.append(
-            {"role": "assistant", "content": response}
+            {"role": "user", "content": question}
         )
 
-    except Exception as error:
-        st.error(
-            "Unable to connect to Ollama. "
-            "Please ensure Ollama is running in the background and 'gemma:2b' is installed."
-        )
-        st.caption(f"Error details: {error}")
+        # 2. Display the user message immediately in the UI
+        with st.chat_message("user"):
+            st.markdown(question)
+
+        # 3. Generate response using local model inside a loading spinner
+        try:
+            with st.chat_message("assistant"):
+                with st.spinner("Gemma is thinking..."):
+                    response = chain.invoke({"question": question})
+                    st.markdown(response)
+
+            # 4. Save assistant reply to session_state so it persists on subsequent turns
+            st.session_state.messages.append(
+                {"role": "assistant", "content": response}
+            )
+
+        except Exception as error:
+            st.error(
+                "Unable to connect to Ollama. "
+                "Please ensure Ollama is running in the background and 'gemma:2b' is installed."
+            )
+            st.caption(f"Error details: {error}")
+
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — app.py

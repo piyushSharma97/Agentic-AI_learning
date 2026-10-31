@@ -23,27 +23,25 @@ from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
 
 # --------------------------------------------------
-# 1. Resolve Document Path & Load Text
+# Path Helper
 # --------------------------------------------------
-
 # Path resolution handles both running from this folder and running from the workspace root.
-file_path = Path(__file__).resolve().parent / "speech.txt"
-if not file_path.exists():
-    file_path = Path(__file__).resolve().parent.parent.parent / "extra" / "speech.txt"
+current_dir = Path(__file__).resolve().parent
 
-if not file_path.exists():
-    raise FileNotFoundError(f"Could not locate speech.txt at {file_path}")
 
-print(f"Loading document from: {file_path.name}")
-loader = TextLoader(str(file_path), encoding="utf-8")
-docs = loader.load()
-print(f"Total source documents loaded: {len(docs)}")
-print(f"Original document character length: {len(docs[0].page_content)}")
+def resolve_speech_txt_path():
+    """Locate speech.txt beside this lesson, then fall back to extra/speech.txt."""
+    speech_path = current_dir / "speech.txt"
+    if not speech_path.exists():
+        speech_path = current_dir.parent.parent / "extra" / "speech.txt"
+    if not speech_path.exists():
+        raise FileNotFoundError(f"Could not locate speech.txt at {speech_path}")
+    return speech_path
+
 
 # --------------------------------------------------
-# 2. Splitting LangChain Document Objects
+# 1. Load a Document and split_documents()
 # --------------------------------------------------
-
 # Parameters:
 # • separator="\n\n": First looks for double line breaks (paragraphs) to split on.
 # • chunk_size=100: Desired maximum length in characters for each chunk.
@@ -52,44 +50,88 @@ print(f"Original document character length: {len(docs[0].page_content)}")
 # Chunk Overlap Mental Model:
 # [ Chunk 0: chars 0 - 100 ]
 #               [ Chunk 1: chars 80 - 180 ]   <-- 20 characters overlap!
-text_splitter = CharacterTextSplitter(
-    separator="\n\n",
-    chunk_size=100,
-    chunk_overlap=20,
-)
-
+#
 # split_documents() takes a list of Document objects and returns a new list of smaller Document objects,
 # automatically copying and preserving all original metadata (e.g. source, author) to each chunk!
-final_documents = text_splitter.split_documents(docs)
 
-print(f"\nNumber of chunks produced from split_documents: {len(final_documents)}")
-print(f"Sample Chunk 0 content:\n---\n{final_documents[0].page_content}\n---")
-print(f"Sample Chunk 0 metadata: {final_documents[0].metadata}")
+
+def example_1_split_documents():
+    """Load speech.txt and split the Document objects on paragraph breaks."""
+    speech_path = resolve_speech_txt_path()
+
+    print(f"[Example 1 | split_documents] Loading document from: {speech_path.name}")
+    speech_loader = TextLoader(str(speech_path), encoding="utf-8")
+    speech_docs = speech_loader.load()
+    print(f"[Example 1 | split_documents] Source documents loaded: {len(speech_docs)}")
+    print(
+        f"[Example 1 | split_documents] Original document character length: "
+        f"{len(speech_docs[0].page_content)}"
+    )
+
+    paragraph_splitter = CharacterTextSplitter(
+        separator="\n\n",
+        chunk_size=100,
+        chunk_overlap=20,
+    )
+    speech_chunks = paragraph_splitter.split_documents(speech_docs)
+
+    print(f"[Example 1 | split_documents] Chunks produced: {len(speech_chunks)}")
+    print(f"[Example 1 | split_documents] Sample chunk 0 content:\n---\n{speech_chunks[0].page_content}\n---")
+    print(f"[Example 1 | split_documents] Sample chunk 0 metadata: {speech_chunks[0].metadata}")
+
 
 # --------------------------------------------------
-# 3. Splitting Raw Python Strings (without Document Loaders)
+# 2. Splitting Raw Python Strings (without Document Loaders)
 # --------------------------------------------------
-
 # Sometimes you have raw text from a database, API, or user input (not from a file loader).
 # LangChain provides create_documents() to convert raw strings directly into Document chunks.
-with open(file_path, "r", encoding="utf-8") as f:
-    raw_speech_text = f.read()
-
-# Default separator for CharacterTextSplitter is "\n\n"
-string_splitter = CharacterTextSplitter(
-    chunk_size=100,
-    chunk_overlap=20,
-)
-
-print(f"\nRaw text type: {type(raw_speech_text)}")          # <class 'str'>
-print(f"Wrapped in list: {type([raw_speech_text])}")       # <class 'list'>
-
+# Default separator for CharacterTextSplitter is "\n\n".
 # create_documents() takes a list of strings: list[str] -> list[Document]
-text_chunks = string_splitter.create_documents([raw_speech_text])
 
-print(f"Total chunks created from raw string: {len(text_chunks)}")
-print(f"Chunk 0: {text_chunks[0].page_content[:80]}...")
-print(f"Chunk 1: {text_chunks[1].page_content[:80]}...")
+
+def example_2_create_documents():
+    """Read the speech as a raw string and turn it into Document chunks."""
+    speech_path = resolve_speech_txt_path()
+
+    with open(speech_path, "r", encoding="utf-8") as speech_file:
+        raw_speech_text = speech_file.read()
+
+    string_splitter = CharacterTextSplitter(
+        chunk_size=100,
+        chunk_overlap=20,
+    )
+
+    print(f"[Example 2 | create_documents] Raw text type: {type(raw_speech_text)}")
+    print(f"[Example 2 | create_documents] Wrapped in list type: {type([raw_speech_text])}")
+
+    raw_text_chunks = string_splitter.create_documents([raw_speech_text])
+
+    print(f"[Example 2 | create_documents] Chunks created from raw string: {len(raw_text_chunks)}")
+    print(f"[Example 2 | create_documents] Chunk 0: {raw_text_chunks[0].page_content[:80]}...")
+    print(f"[Example 2 | create_documents] Chunk 1: {raw_text_chunks[1].page_content[:80]}...")
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - CHARACTER TEXT SPLITTER PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_split_documents()
+    # example_2_create_documents()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — CharacterTextsplitter.py

@@ -19,33 +19,42 @@ A Document consists of two essential attributes:
 
 from pathlib import Path
 
+import bs4
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, WebBaseLoader
+
 # --------------------------------------------------
 # Path Helper to Resolve Sample Files
 # --------------------------------------------------
 # Resolves paths relative to this script so running from any directory works reliably.
 current_dir = Path(__file__).resolve().parent
 
+
 # ==================================================
 # 1. TextLoader — Loading Plain Text Files (.txt)
 # ==================================================
 # The simplest loader: reads a UTF-8 text file from disk into a single Document.
 
-from langchain_community.document_loaders import TextLoader
 
-text_path = current_dir / "speach.txt"
-if not text_path.exists():
-    text_path = current_dir.parent.parent / "extra" / "speech.txt"
+def example_1_text_loader():
+    """Load a plain-text file into one LangChain Document and inspect it."""
+    text_path = current_dir / "speach.txt"
+    if not text_path.exists():
+        text_path = current_dir.parent.parent / "extra" / "speech.txt"
 
-print(f"Loading plain text from: {text_path.name}")
-text_loader = TextLoader(str(text_path), encoding="utf-8")
+    print(f"[Example 1 | TextLoader] Loading plain text from: {text_path.name}")
+    text_loader = TextLoader(str(text_path), encoding="utf-8")
 
-# .load() reads the file synchronously and returns a list of Document objects
-text_docs = text_loader.load()
+    # .load() reads the file synchronously and returns a list of Document objects
+    text_docs = text_loader.load()
 
-print(f"Number of documents loaded: {len(text_docs)}")
-print(f"Document Type: {type(text_docs[0])}")
-print(f"Metadata: {text_docs[0].metadata}")
-print(f"Content preview (first 120 chars):\n  \"{text_docs[0].page_content[:120].strip()}...\"\n")
+    print(f"[Example 1 | TextLoader] Documents loaded: {len(text_docs)}")
+    print(f"[Example 1 | TextLoader] Document type: {type(text_docs[0])}")
+    print(f"[Example 1 | TextLoader] Metadata: {text_docs[0].metadata}")
+    print(
+        f"[Example 1 | TextLoader] Content preview (first 120 chars): "
+        f"\"{text_docs[0].page_content[:120].strip()}...\""
+    )
+
 
 # ==================================================
 # 2. PyPDFLoader — Ingesting PDF Files (.pdf)
@@ -54,21 +63,26 @@ print(f"Content preview (first 120 chars):\n  \"{text_docs[0].page_content[:120]
 # PyPDFLoader parses page text using pypdf and creates ONE Document per PDF page.
 # This makes page-level citation in RAG trivial!
 
-from langchain_community.document_loaders import PyPDFLoader
 
-pdf_path = current_dir / "attention.pdf"
-if not pdf_path.exists():
-    pdf_path = current_dir.parent / "04_Data Trnasformer" / "attention.pdf"
+def example_2_pdf_loader():
+    """Load a PDF into one Document per page and inspect the first page."""
+    pdf_path = current_dir / "attention.pdf"
+    if not pdf_path.exists():
+        pdf_path = current_dir.parent / "04_Data Trnasformer" / "attention.pdf"
 
-print(f"Loading PDF from: {pdf_path.name}")
-pdf_loader = PyPDFLoader(str(pdf_path))
-pdf_docs = pdf_loader.load()
+    print(f"[Example 2 | PyPDFLoader] Loading PDF from: {pdf_path.name}")
+    pdf_loader = PyPDFLoader(str(pdf_path))
+    pdf_docs = pdf_loader.load()
 
-print(f"Total pages extracted from PDF: {len(pdf_docs)}")
-# Inspect the first page
-first_page = pdf_docs[0]
-print(f"Page 1 Metadata (Notice the 'page' key!): {first_page.metadata}")
-print(f"Page 1 Content snippet:\n  \"{first_page.page_content[:180].strip()}...\"\n")
+    print(f"[Example 2 | PyPDFLoader] Total pages extracted from PDF: {len(pdf_docs)}")
+    # Inspect the first page
+    pdf_first_page = pdf_docs[0]
+    print(f"[Example 2 | PyPDFLoader] Page 1 metadata (notice the 'page' key): {pdf_first_page.metadata}")
+    print(
+        f"[Example 2 | PyPDFLoader] Page 1 content snippet: "
+        f"\"{pdf_first_page.page_content[:180].strip()}...\""
+    )
+
 
 # ==================================================
 # 3. WebBaseLoader — Scraping and Ingesting Web Pages
@@ -81,25 +95,52 @@ print(f"Page 1 Content snippet:\n  \"{first_page.page_content[:180].strip()}...\
 # • `BeautifulSoup4` (bs4) to extract human-readable text.
 # • `SoupStrainer` to parse ONLY the specific CSS classes that contain the article body!
 
-import bs4
-from langchain_community.document_loaders import WebBaseLoader
 
-target_url = "https://lilianweng.github.io/posts/2023-06-23-agent/"
-print(f"Fetching and parsing web article: {target_url}")
+def example_3_web_loader():
+    """Scrape one article with WebBaseLoader and keep only the post body."""
+    target_url = "https://lilianweng.github.io/posts/2023-06-23-agent/"
+    print(f"[Example 3 | WebBaseLoader] Fetching and parsing web article: {target_url}")
 
-# SoupStrainer isolates the relevant HTML tags before parsing the entire DOM tree,
-# dramatically boosting speed and filtering out unwanted navigation bars and footers.
-strainer = bs4.SoupStrainer(class_=("post-title", "post-content", "post-header"))
+    # SoupStrainer isolates the relevant HTML tags before parsing the entire DOM tree,
+    # dramatically boosting speed and filtering out unwanted navigation bars and footers.
+    web_strainer = bs4.SoupStrainer(class_=("post-title", "post-content", "post-header"))
 
-web_loader = WebBaseLoader(
-    web_paths=(target_url,),
-    bs_kwargs={"parse_only": strainer},
-)
+    web_loader = WebBaseLoader(
+        web_paths=(target_url,),
+        bs_kwargs={"parse_only": web_strainer},
+    )
 
-web_docs = web_loader.load()
-print(f"Number of web documents parsed: {len(web_docs)}")
-print(f"Web Document Metadata: {web_docs[0].metadata}")
-print(f"Web Content preview:\n  \"{web_docs[0].page_content[:200].strip()}...\"\n")
+    web_docs = web_loader.load()
+    print(f"[Example 3 | WebBaseLoader] Web documents parsed: {len(web_docs)}")
+    print(f"[Example 3 | WebBaseLoader] Web document metadata: {web_docs[0].metadata}")
+    print(
+        f"[Example 3 | WebBaseLoader] Web content preview: "
+        f"\"{web_docs[0].page_content[:200].strip()}...\""
+    )
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - DATA INGESTION PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_text_loader()
+    # example_2_pdf_loader()
+    # example_3_web_loader()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 01_DataIngestion.py

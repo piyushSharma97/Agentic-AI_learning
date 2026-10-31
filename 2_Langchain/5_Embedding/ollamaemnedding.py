@@ -17,68 +17,110 @@ Why use Ollama for Embeddings?
 # langchain_ollama is the official integration package for Ollama models.
 from langchain_ollama import OllamaEmbeddings
 
-# --------------------------------------------------
-# 1. Initialize Ollama Embedding Client
-# --------------------------------------------------
 
-# Connects to the local Ollama daemon running at default port 11434.
-# Ensure you have pulled the model first in your terminal: `ollama pull embeddinggemma`
-print("Step 1: Connecting to Ollama service with 'embeddinggemma' model...")
-embeddings_gemma = OllamaEmbeddings(
-    model="embeddinggemma",
-    base_url="http://localhost:11434",
-)
+def build_gemma_embeddings():
+    """Connect to the local Ollama daemon using embeddinggemma."""
+    # Ensure you have pulled the model first in your terminal: `ollama pull embeddinggemma`
+    return OllamaEmbeddings(
+        model="embeddinggemma",
+        base_url="http://localhost:11434",
+    )
+
 
 # --------------------------------------------------
-# 2. Embedding a List of Documents (embed_documents)
+# 1. Embedding a List of Documents (embed_documents)
 # --------------------------------------------------
-
 # In a RAG pipeline, you take your source text passages and embed them all into the database.
-documents = [
-    "Alpha is the first letter of Greek alphabet",
-    "Beta is the second letter of Greek alphabet",
-    "Gamma is the third letter of Greek alphabet",
-]
 
-print(f"\nStep 2: Embedding {len(documents)} document strings...")
-doc_vectors = embeddings_gemma.embed_documents(documents)
 
-print(f"Number of vectors generated: {len(doc_vectors)}")
-print(f"Dimensions per vector: {len(doc_vectors[0])}")
-print(f"Sample coordinates from vector 0: {doc_vectors[0][:4]}")
+def example_1_embed_documents():
+    """Turn three Greek-letter sentences into vectors with embeddinggemma."""
+    print("[Example 1 | embed_documents] Connecting to Ollama service with 'embeddinggemma' model...")
+    gemma_embeddings = build_gemma_embeddings()
+
+    greek_letter_documents = [
+        "Alpha is the first letter of Greek alphabet",
+        "Beta is the second letter of Greek alphabet",
+        "Gamma is the third letter of Greek alphabet",
+    ]
+
+    print(f"[Example 1 | embed_documents] Embedding {len(greek_letter_documents)} document strings...")
+    greek_letter_vectors = gemma_embeddings.embed_documents(greek_letter_documents)
+
+    print(f"[Example 1 | embed_documents] Vectors generated: {len(greek_letter_vectors)}")
+    print(f"[Example 1 | embed_documents] Dimensions per vector: {len(greek_letter_vectors[0])}")
+    print(f"[Example 1 | embed_documents] Sample coordinates from vector 0: {greek_letter_vectors[0][:4]}")
+
 
 # --------------------------------------------------
-# 3. Embedding a User Query (embed_query)
+# 2. Embedding a User Query (embed_query)
 # --------------------------------------------------
-
 # When a user submits a search or question, you embed their query string using embed_query().
-# The vector store then computes similarity between query_vector and doc_vectors.
-query_text = "What is the second letter of Greek alphabet?"
-print(f"\nStep 3: Embedding search query: \"{query_text}\"")
+# The vector store then computes similarity between the query vector and the document vectors.
 
-query_vector = embeddings_gemma.embed_query(query_text)
-print(f"Query vector dimensions: {len(query_vector)}")
-print(f"Query vector preview: {query_vector[:4]}")
+
+def example_2_embed_query():
+    """Embed one question with embeddinggemma and print the query vector."""
+    print("[Example 2 | embed_query] Connecting to Ollama service with 'embeddinggemma' model...")
+    gemma_embeddings = build_gemma_embeddings()
+
+    greek_letter_query = "What is the second letter of Greek alphabet?"
+    print(f"[Example 2 | embed_query] Search query: \"{greek_letter_query}\"")
+
+    greek_letter_query_vector = gemma_embeddings.embed_query(greek_letter_query)
+    print(f"[Example 2 | embed_query] Query vector dimensions: {len(greek_letter_query_vector)}")
+    print(f"[Example 2 | embed_query] Query vector preview: {greek_letter_query_vector[:4]}")
+
 
 # --------------------------------------------------
-# 4. Exploring Alternative Local Models: mxbai-embed-large
+# 3. Exploring Alternative Local Models: mxbai-embed-large
 # --------------------------------------------------
 # Ollama lets you easily switch between different embedding models.
 # Reference: https://ollama.com/blog/embedding-models
 # Pull command: `ollama pull mxbai-embed-large`
 
-print("\nStep 4: Testing 'mxbai-embed-large' (State-of-the-Art Embedding Model)...")
-try:
-    embeddings_mxbai = OllamaEmbeddings(
-        model="mxbai-embed-large",
-        base_url="http://localhost:11434",
-    )
-    test_text = "This is a test document for mxbai embedding."
-    mxbai_vector = embeddings_mxbai.embed_query(test_text)
-    print(f"mxbai-embed-large Dimensions: {len(mxbai_vector)}")
-    print(f"mxbai first 4 vector values: {mxbai_vector[:4]}")
-except Exception as e:
-    print(f"Note: mxbai-embed-large not installed locally. Run `ollama pull mxbai-embed-large` to test. Error: {e}")
+
+def example_3_mxbai_embed_large():
+    """Embed one test sentence with mxbai-embed-large, or report that it is missing."""
+    print("[Example 3 | mxbai-embed-large] Testing 'mxbai-embed-large' (state-of-the-art embedding model)...")
+    try:
+        mxbai_embeddings = OllamaEmbeddings(
+            model="mxbai-embed-large",
+            base_url="http://localhost:11434",
+        )
+        mxbai_test_text = "This is a test document for mxbai embedding."
+        mxbai_vector = mxbai_embeddings.embed_query(mxbai_test_text)
+        print(f"[Example 3 | mxbai-embed-large] Dimensions: {len(mxbai_vector)}")
+        print(f"[Example 3 | mxbai-embed-large] First 4 vector values: {mxbai_vector[:4]}")
+    except Exception as mxbai_error:
+        print(
+            "[Example 3 | mxbai-embed-large] Note: mxbai-embed-large not installed locally. "
+            f"Run `ollama pull mxbai-embed-large` to test. Error: {mxbai_error}"
+        )
+
+
+def main():
+    print("\n============================================")
+    print("LANGCHAIN - OLLAMA EMBEDDINGS PRACTICE")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+    # example_1_embed_documents()
+    # example_2_embed_query()
+    # example_3_mxbai_embed_large()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — ollamaemnedding.py

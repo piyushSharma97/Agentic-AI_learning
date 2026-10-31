@@ -31,87 +31,158 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     print("Warning: OPENAI_API_KEY is not set in environment or .env file.")
 
-# --------------------------------------------------
-# 2. Initializing the OpenAI Chat Model
-# --------------------------------------------------
 
-# ChatOpenAI wraps the OpenAI API:
-# • model="gpt-4o": OpenAI's flagship multimodal model.
-# • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
-print("Step 1: Initialized ChatOpenAI client:")
-print(llm)
+def _create_llm():
+    # --------------------------------------------------
+    # 2. Initializing the OpenAI Chat Model
+    # --------------------------------------------------
+
+    # ChatOpenAI wraps the OpenAI API:
+    # • model="gpt-4o": OpenAI's flagship multimodal model.
+    # • temperature: Defaults to 0.7 (controls creativity). Set to 0 for deterministic answers.
+    return ChatOpenAI(model="gpt-4o", temperature=0.2)
+
+
+def _expert_prompt():
+    # Why use ChatPromptTemplate instead of Python f-strings?
+    # 1. Role Enforcement: Clearly separates "system" rules from "human" input.
+    # 2. Reusability: Defines the prompt structure once and dynamically injects variables.
+    # 3. Security: Sanitizes inputs and prevents prompt injection attacks.
+    return ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are an expert AI engineer. "
+            "Explain technical concepts clearly, "
+            "with practical examples."
+        ),
+        ("human", "{input}"),
+    ])
+
 
 # --------------------------------------------------
 # 3. Direct Model Invocation (Simplest Way)
 # --------------------------------------------------
 
-# .invoke() sends a prompt to the model and waits for the complete response.
-print("\nStep 2: Sending direct prompt to model...")
-result = llm.invoke("What is generative AI?")
+def example_1_direct_invoke():
+    # --------------------------------------------------
+    # 3. Direct Model Invocation (Simplest Way)
+    # --------------------------------------------------
 
-# The model returns an AIMessage object, NOT a raw string!
-# AIMessage contains the generated text PLUS metadata (token usage, model name, finish reason).
-print("\nType of result:", type(result))
-print("Raw AIMessage content:\n", result.content[:150] + "...")
+    llm = _create_llm()
+    print("[Example 1 | initialized ChatOpenAI client]")
+    print(llm)
+
+    # .invoke() sends a prompt to the model and waits for the complete response.
+    print("[Example 1 | direct invoke] Sending direct prompt to model...")
+    result = llm.invoke("What is generative AI?")
+
+    # The model returns an AIMessage object, NOT a raw string!
+    # AIMessage contains the generated text PLUS metadata (token usage, model name, finish reason).
+    print("[Example 1 | direct invoke result type]", type(result))
+    print("[Example 1 | raw AIMessage content]")
+    print(result.content[:150] + "...")
+
 
 # --------------------------------------------------
 # 4. Creating Reusable Prompts with ChatPromptTemplate
 # --------------------------------------------------
 
-# Why use ChatPromptTemplate instead of Python f-strings?
-# 1. Role Enforcement: Clearly separates "system" rules from "human" input.
-# 2. Reusability: Defines the prompt structure once and dynamically injects variables.
-# 3. Security: Sanitizes inputs and prevents prompt injection attacks.
-prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are an expert AI engineer. "
-        "Explain technical concepts clearly, "
-        "with practical examples."
-    ),
-    ("human", "{input}"),
-])
+def example_2_prompt_template():
+    # --------------------------------------------------
+    # 4. Creating Reusable Prompts with ChatPromptTemplate
+    # --------------------------------------------------
 
-# Inspecting what the formatted prompt looks like before sending to the model:
-prompt_value = prompt.invoke({"input": "Can you tell me about LangSmith?"})
-print("\nStep 3: Formatted PromptValue:")
-print(prompt_value)
+    prompt = _expert_prompt()
+
+    # Inspecting what the formatted prompt looks like before sending to the model:
+    prompt_value = prompt.invoke({"input": "Can you tell me about LangSmith?"})
+    print("[Example 2 | formatted prompt]")
+    print(prompt_value)
+
 
 # --------------------------------------------------
 # 5. Composing a Basic LCEL Chain (prompt | llm)
 # --------------------------------------------------
 
-# The pipe operator (|) is LangChain Expression Language (LCEL).
-# It links components like an assembly line:
-# Output of prompt (formatted messages) -> Input of llm (generates response)
-chain = prompt | llm
+def example_3_prompt_llm():
+    # --------------------------------------------------
+    # 5. Composing a Basic LCEL Chain (prompt | llm)
+    # --------------------------------------------------
 
-# Invoking the chain automatically formats the prompt and calls the model in one clean step:
-response = chain.invoke({"input": "Can you tell me about HuggingFace?"})
-print("\nStep 4: Response from (prompt | llm) chain:")
-print("Type of response:", type(response))  # Still an AIMessage object!
-print("Content:\n", response.content[:150] + "...")
+    llm = _create_llm()
+    prompt = _expert_prompt()
+
+    # The pipe operator (|) is LangChain Expression Language (LCEL).
+    # It links components like an assembly line:
+    # Output of prompt (formatted messages) -> Input of llm (generates response)
+    chain = prompt | llm
+
+    # Invoking the chain automatically formats the prompt and calls the model in one clean step:
+    response = chain.invoke({"input": "Can you tell me about HuggingFace?"})
+    print("[Example 3 | prompt-llm response type]", type(response))  # Still an AIMessage object!
+    print("[Example 3 | prompt-llm content]")
+    print(response.content[:150] + "...")
+
 
 # --------------------------------------------------
 # 6. Adding StrOutputParser (prompt | llm | output_parser)
 # THE UNIVERSAL LANGCHAIN PRODUCTION PATTERN
 # --------------------------------------------------
 
-# StrOutputParser extracts just the clean string from the AIMessage object.
-output_parser = StrOutputParser()
+def example_4_prompt_llm_parser():
+    # --------------------------------------------------
+    # 6. Adding StrOutputParser (prompt | llm | output_parser)
+    # THE UNIVERSAL LANGCHAIN PRODUCTION PATTERN
+    # --------------------------------------------------
 
-# The complete production pipeline:
-# 1. prompt: formats dictionary variables into system/human messages.
-# 2. llm: sends messages to OpenAI and returns AIMessage.
-# 3. output_parser: parses AIMessage into clean str.
-full_chain = prompt | llm | output_parser
+    llm = _create_llm()
+    prompt = _expert_prompt()
 
-print("\nStep 5: Invoking full chain (prompt | llm | output_parser)...")
-final_response = full_chain.invoke({"input": "Can you tell me about LangSmith in 2 sentences?"})
+    # StrOutputParser extracts just the clean string from the AIMessage object.
+    output_parser = StrOutputParser()
 
-print("Type of final_response:", type(final_response))  # <class 'str'>
-print("Clean String Output:\n", final_response)
+    # The complete production pipeline:
+    # 1. prompt: formats dictionary variables into system/human messages.
+    # 2. llm: sends messages to OpenAI and returns AIMessage.
+    # 3. output_parser: parses AIMessage into clean str.
+    full_chain = prompt | llm | output_parser
+
+    print("[Example 4 | full chain] Invoking full chain (prompt | llm | output_parser)...")
+    final_response = full_chain.invoke({"input": "Can you tell me about LangSmith in 2 sentences?"})
+
+    print("[Example 4 | full chain response type]", type(final_response))  # <class 'str'>
+    print("[Example 4 | clean string output]")
+    print(final_response)
+
+
+def main():
+
+    print("\n============================================")
+    print("OPENAI LCEL - GETTING STARTED")
+    print("============================================")
+
+    # Uncomment the examples you want to execute.
+
+    # example_1_direct_invoke()
+
+    # example_2_prompt_template()
+
+    # example_3_prompt_llm()
+
+    # example_4_prompt_llm_parser()
+
+    print("\n============================================")
+    print("EXECUTION COMPLETED")
+    print("============================================")
+
+
+# Python entry point.
+# This ensures main() runs only when this file
+# is executed directly, not when imported elsewhere.
+
+if __name__ == "__main__":
+    main()
+
 
 # ============================================================
 # REVISION NOTES — 1-GettingStarted.py

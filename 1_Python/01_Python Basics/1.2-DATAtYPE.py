@@ -13,6 +13,13 @@ Data types tell the Python interpreter:
 Python is Strongly Typed:
 Python will NOT automatically convert a number into text when concatenating with strings (unlike JavaScript or PHP).
 This prevents subtle bugs in calculations and data pipelines!
+
+JavaScript comparison:
+- Python keeps int and float separate. JavaScript has one everyday type, number, for both.
+- Python writes True and False. JavaScript writes true and false.
+- type(value) returns the Python class. typeof value in JavaScript returns a string such as "number".
+- "hello" + 5 is a TypeError in Python. The same expression in JavaScript becomes the string "hello5".
+- str(5) converts on purpose. JavaScript's String(5) does the same job.
 """
 
 # --------------------------------------------------
