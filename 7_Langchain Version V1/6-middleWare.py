@@ -131,6 +131,7 @@ def example_1_summarize_by_message_count():
         print("-" * 72)
 
 
+
 # ============================================================
 # EXAMPLE 2: SUMMARIZE BY TOKEN COUNT
 # ============================================================
@@ -295,7 +296,7 @@ def example_4_approve_tool_call():
         "EXAMPLE 4: HumanInTheLoopMiddleware — approve",
         "send_email_for_approve_demo pauses for a human decision.\n"
         "read_email_for_approve_demo is set to False, so reading would not pause.\n"
-        "This run approves the email and lets the original arguments through.",
+        "This run asks you in the terminal whether to approve or reject.",
     )
 
     approve_demo_agent = create_agent(
@@ -328,18 +329,33 @@ def example_4_approve_tool_call():
         config=approve_demo_thread_config,
     )
 
-    print("[Example 4] State returned on the first invoke (this should contain the pause):")
-    print(approve_demo_paused_result)
+    print("[Example 4] State returned on the first invoke (paused before tool execution):")
+    print("approve_demo_paused_result ==>", approve_demo_paused_result)
 
     # "__interrupt__" is present only when middleware stopped the graph
     # before the tool executed. Resume with the same thread id.
     if "__interrupt__" in approve_demo_paused_result:
-        print("[Example 4] Paused before send_email_for_approve_demo. Decision: approve.")
+        print()
+        print("=" * 50)
+        print("🚨 HUMAN INTERVENTION REQUIRED (Example 4)!")
+        last_message = approve_demo_paused_result["messages"][-1]
+        tool_call = last_message.tool_calls[0] if getattr(last_message, "tool_calls", None) else None
+        if tool_call:
+            print(f"Tool proposed: {tool_call.get('name')}")
+            print(f"Arguments:     {tool_call.get('args')}")
+        else:
+            print("Interrupt info:", approve_demo_paused_result["__interrupt__"])
+        print("=" * 50)
+
+        # Prompt user in the terminal
+        user_choice = input("Enter decision (approve / reject) [default: approve]: ").strip().lower() or "approve"
+        print(f"[Example 4] Applying decision: '{user_choice}'")
+
         approve_demo_final_result = approve_demo_agent.invoke(
-            Command(resume={"decisions": [{"type": "approve"}]}),
+            Command(resume={"decisions": [{"type": user_choice}]}),
             config=approve_demo_thread_config,
         )
-        print(f"[Example 4] Reply after approval: {approve_demo_final_result['messages'][-1].content}")
+        print(f"[Example 4] Reply after decision: {approve_demo_final_result['messages'][-1].content}")
     else:
         print("[Example 4] No pause was returned, so there was nothing to approve.")
 
@@ -365,7 +381,7 @@ def example_5_reject_tool_call():
     print_section(
         "EXAMPLE 5: HumanInTheLoopMiddleware — reject",
         "The model again tries to send an email.\n"
-        "The human decision is reject, so the tool does not run.",
+        "You can choose to reject the call so the tool does not run.",
     )
 
     reject_demo_agent = create_agent(
@@ -397,13 +413,28 @@ def example_5_reject_tool_call():
         config=reject_demo_thread_config,
     )
 
-    print("[Example 5] State returned on the first invoke (this should contain the pause):")
-    print(reject_demo_paused_result)
+    print("[Example 5] State returned on the first invoke (paused before tool execution):")
+    print("reject_demo_paused_result ==>", reject_demo_paused_result)
 
     if "__interrupt__" in reject_demo_paused_result:
-        print("[Example 5] Paused before send_email_for_reject_demo. Decision: reject.")
+        print()
+        print("=" * 50)
+        print("🚨 HUMAN INTERVENTION REQUIRED (Example 5)!")
+        last_message = reject_demo_paused_result["messages"][-1]
+        tool_call = last_message.tool_calls[0] if getattr(last_message, "tool_calls", None) else None
+        if tool_call:
+            print(f"Tool proposed: {tool_call.get('name')}")
+            print(f"Arguments:     {tool_call.get('args')}")
+        else:
+            print("Interrupt info:", reject_demo_paused_result["__interrupt__"])
+        print("=" * 50)
+
+        # Prompt user in the terminal
+        user_choice = input("Enter decision (reject / approve) [default: reject]: ").strip().lower() or "reject"
+        print(f"[Example 5] Applying decision: '{user_choice}'")
+
         reject_demo_final_result = reject_demo_agent.invoke(
-            Command(resume={"decisions": [{"type": "reject"}]}),
+            Command(resume={"decisions": [{"type": user_choice}]}),
             config=reject_demo_thread_config,
         )
         print(f"[Example 5] Reply after rejection: {reject_demo_final_result['messages'][-1].content}")
@@ -436,7 +467,7 @@ def example_6_edit_tool_call():
     print_section(
         "EXAMPLE 6: HumanInTheLoopMiddleware — edit",
         "The model proposes an email to wrong@email.com.\n"
-        "The human replaces the arguments, then the tool runs with the edited values.",
+        "You can interactively replace the arguments in the terminal before sending.",
     )
 
     edit_demo_agent = create_agent(
@@ -468,11 +499,32 @@ def example_6_edit_tool_call():
         config=edit_demo_thread_config,
     )
 
-    print("[Example 6] State returned on the first invoke (this should contain the pause):")
-    print(edit_demo_paused_result)
+    print("[Example 6] State returned on the first invoke (paused before tool execution):")
+    print("edit_demo_paused_result ==>", edit_demo_paused_result)
 
     if "__interrupt__" in edit_demo_paused_result:
-        print("[Example 6] Paused before send_email_for_edit_demo. Decision: edit the arguments.")
+        print()
+        print("=" * 50)
+        print("🚨 HUMAN INTERVENTION REQUIRED (Example 6 - Edit Arguments)!")
+        last_message = edit_demo_paused_result["messages"][-1]
+        tool_call = last_message.tool_calls[0] if getattr(last_message, "tool_calls", None) else None
+        current_args = tool_call.get("args", {}) if tool_call else {}
+        orig_recipient = current_args.get("recipient", "wrong@email.com")
+        orig_subject = current_args.get("subject", "Test")
+        orig_body = current_args.get("body", "Hello")
+
+        print("The model proposed:")
+        print(f"  Tool:      send_email_for_edit_demo")
+        print(f"  Recipient: {orig_recipient}")
+        print(f"  Subject:   {orig_subject}")
+        print(f"  Body:      {orig_body}")
+        print("-" * 50)
+        print("Enter new values below (press Enter to keep proposed):")
+        new_recipient = input(f"New recipient [{orig_recipient}]: ").strip() or orig_recipient
+        new_subject = input(f"New subject [{orig_subject}]: ").strip() or orig_subject
+        new_body = input(f"New body [{orig_body}]: ").strip() or orig_body
+        print("=" * 50)
+
         edit_demo_final_result = edit_demo_agent.invoke(
             Command(
                 resume={
@@ -483,9 +535,9 @@ def example_6_edit_tool_call():
                                 # Must be the registered tool name.
                                 "name": "send_email_for_edit_demo",
                                 "args": {
-                                    "recipient": "correct@email.com",
-                                    "subject": "Corrected Subject",
-                                    "body": "This was edited by human before sending",
+                                    "recipient": new_recipient,
+                                    "subject": new_subject,
+                                    "body": new_body,
                                 },
                             },
                         }
@@ -516,7 +568,7 @@ def main():
 
     # example_3_summarize_by_fraction()
 
-    # example_4_approve_tool_call()
+    example_4_approve_tool_call()
 
     # example_5_reject_tool_call()
 
