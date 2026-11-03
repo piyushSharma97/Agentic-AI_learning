@@ -1,0 +1,25 @@
+# TechFlow Innovations - Company Handbook & Policy (2026)
+
+## About TechFlow
+TechFlow Innovations is an AI-first software engineering company founded in 2021 by Sarah Jenkins.
+Headquartered in Seattle, Washington, TechFlow specializes in automated code migration, agentic workflows,
+and multi-modal enterprise AI assistants.
+
+## Remote Work Policy
+1. Work Hours: TechFlow supports flexible working hours. Core collaborative hours are 10:00 AM to 2:00 PM PST.
+2. Home Office Stipend: Every full-time employee receives a one-time \$1,500 home office setup budget
+   and a recurring \$100 monthly internet reimbursement.
+3. Equipment: Standard engineering setup includes a 16-inch MacBook Pro or equivalent Dell XPS 15,
+   plus two external 4K monitors upon request.
+
+## Leave Policy
+1. Unlimited Paid Time Off (PTO): Employees are encouraged to take at least 25 days off per year.
+   Leaves exceeding 2 consecutive weeks require 30 days prior notice to team leads.
+2. Health & Wellness: 12 dedicated sick/mental health days annually, no doctor note required for up to 2 consecutive days.
+3. Parental Leave: 16 weeks of 100% paid parental leave for primary and secondary caregivers.
+
+## AI & Data Privacy Guidelines
+1. Customer Data: Customer PII or source code must NEVER be pasted into public, non-enterprise LLM interfaces.
+2. Internal LLM Gateway: All generative AI tools must route through the TechFlow Gateway (gateway.internal.techflow.ai)
+   which anonymizes API calls and disables model training retention.
+
