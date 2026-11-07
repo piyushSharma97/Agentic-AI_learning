@@ -2,6 +2,19 @@
 =============================================================================
 LANGGRAPH COMPONENT 11: CHATBOT WITH SEVERAL TOOLS
 =============================================================================
+USE
+One chatbot that can look up a paper, a definition, or today's news,
+and answer in a sentence after the lookup.
+
+WHY THIS APPROACH
+Writing `if "arxiv" in question` breaks as soon as the user says
+"that transformer paper from 2017". The model reads each tool's name and
+docstring and chooses. Several tools are bound at once because the
+question decides the tool, not the graph.
+The graph still loops tools -> assistant. The tool returns a long extract.
+The second model call is what turns that extract into the short answer.
+File 10 is the same tools with no model, so you can see the extract alone.
+
 The model sees Arxiv, Wikipedia, and (when you have a key) Tavily.
 bind_tools does not run them. It only lets the model request one.
 
@@ -68,11 +81,18 @@ def search_arxiv(query: str) -> str:
 
 
 class State(TypedDict):
+    # Use: the whole chat, including tool results, lives in one list.
+    # Why: add_messages keeps the question, the tool call, and the tool
+    # text. The second assistant call needs all three to write the summary.
     messages: Annotated[list[AnyMessage], add_messages]
 
 
 def build_tools():
     """Tools the assistant is allowed to request."""
+    # Use: a list of tools, built at runtime.
+    # Why: Tavily is added only when the key exists. Binding a tool that
+    # cannot run would make the model call it and then fail. Leaving it out
+    # means the model chooses between the tools that actually work.
     from langchain_community.tools import WikipediaQueryRun
     from langchain_community.utilities import WikipediaAPIWrapper
 
@@ -96,6 +116,9 @@ def build_tools():
 
 
 def build_chatbot(tools):
+    # Use: bind every working tool onto one model.
+    # Why: the model picks among them per question. temperature=0 keeps
+    # that pick stable while you are learning the trace.
     llm_with_tools = get_llm(temperature=0).bind_tools(tools)
 
     def assistant(state: State) -> dict:
@@ -107,7 +130,12 @@ def build_chatbot(tools):
     builder.add_node("tools", ToolNode(tools))
 
     builder.add_edge(START, "assistant")
+    # Use: tools_condition as the branch after the model.
+    # Why: you do not write the if-statement. The helper already checks
+    # AIMessage.tool_calls and returns "tools" or END.
     builder.add_conditional_edges("assistant", tools_condition)
+    # Use: loop so the model reads the tool text and answers.
+    # Why: an edge to END here would stop on the raw paper extract.
     builder.add_edge("tools", "assistant")
     return builder.compile()
 

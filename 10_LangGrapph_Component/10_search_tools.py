@@ -2,6 +2,17 @@
 =============================================================================
 LANGGRAPH COMPONENT 10: SEARCH TOOLS ON THEIR OWN
 =============================================================================
+USE
+Call Arxiv, Wikipedia, and Tavily by hand and read the text they return.
+File 11 gives these same tools to a model. This file is the dry run.
+
+WHY THIS APPROACH
+If the chatbot gives a bad answer, the fault is either the tool text or
+the model's summary. Calling the tool yourself shows the text first.
+Each source is its own function because each one is good at a different
+job: Arxiv for papers, Wikipedia for definitions, Tavily for today's web.
+One giant "search everything" tool hides that choice from you and from the model.
+
 Before a chatbot chooses tools, call each tool yourself.
 Then you know what the model will receive.
 
@@ -39,6 +50,10 @@ warnings.filterwarnings("ignore", message=".*langchain-community.*")
 @tool
 def search_arxiv(query: str) -> str:
     """Search arXiv by keywords or by a paper id such as 1706.03762."""
+    # Use: arxiv.Client to download matching papers.
+    # Why: the notebook's ArxivQueryRun still calls Search.results(), which
+    # arxiv 4 removed. Client.results is the current call. page_size=2 keeps
+    # the reply short enough to paste into a model prompt.
     client = arxiv.Client(page_size=2, delay_seconds=1.0, num_retries=2)
     cleaned = query.strip()
     # An id looks like 1706.03762. Anything else is treated as a text search.
@@ -53,6 +68,9 @@ def search_arxiv(query: str) -> str:
 
     blocks = []
     for paper in papers:
+        # Use: keep about 500 characters of the abstract.
+        # Why: a full abstract plus several papers will crowd out the question
+        # when this string is later sent back to the model.
         summary = " ".join(paper.summary.split())[:500]
         authors = ", ".join(author.name for author in paper.authors[:5])
         blocks.append(
@@ -77,6 +95,9 @@ def example_wikipedia():
     from langchain_community.tools import WikipediaQueryRun
     from langchain_community.utilities import WikipediaAPIWrapper
 
+    # Use: one page, cut at 500 characters.
+    # Why: Wikipedia pages are long. The model only needs the opening definition
+    # to answer "what is machine learning?".
     api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
     wiki = WikipediaQueryRun(api_wrapper=api_wrapper)
 

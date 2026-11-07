@@ -2,6 +2,17 @@
 =============================================================================
 LANGGRAPH COMPONENT 2: STATE SCHEMA WITH PYTHON DATACLASSES
 =============================================================================
+USE
+Same graph as file 01, with the state stored as an object.
+Nodes read `state.name` and can call methods such as `state.summary()`.
+
+WHY THIS APPROACH
+TypedDict is only a dict with hints. A dataclass is used when the state
+has defaults (`score: int = 0`) or behavior that belongs on the data.
+Nodes still return plain dicts. LangGraph copies those keys onto the
+object, so you do not build a new dataclass inside every node.
+There is still no runtime check. A wrong type is accepted. File 03 rejects it.
+
 WHY DATACLASSES?
 Python's built-in `@dataclass` decorator offers an object-oriented approach
 to defining LangGraph state:
@@ -50,7 +61,9 @@ class PlayerDataClassState:
 # 2. DEFINE NODE FUNCTIONS USING DOT NOTATION
 # ---------------------------------------------------------------------------
 def warm_up(state: PlayerDataClassState) -> dict:
-    # Notice: dot notation `state.name` instead of `state['name']`
+    # Use: read fields with a dot. Return a dict of updates.
+    # Why: dot access catches typos in the editor. Returning a dict, rather
+    # than a new PlayerDataClassState, matches every other LangGraph node.
     print(f"\n[Node: warm_up] {state.name} is stretching and warming up...")
     return {
         "status": f"{state.name} finished warm-up.",

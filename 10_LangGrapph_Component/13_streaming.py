@@ -2,6 +2,20 @@
 =============================================================================
 LANGGRAPH COMPONENT 13: STREAMING A CHATBOT
 =============================================================================
+USE
+Show progress while a chatbot runs, instead of waiting for the full answer.
+Three views of the same graph: the new write, the whole state, and the tokens.
+
+WHY THIS APPROACH
+invoke() returns once, at the end. A UI cannot type the reply out that way.
+stream(stream_mode="updates") is used when you only need what just changed,
+which is the new AIMessage. stream_mode="values" is used when you need the
+full history after each node, because updates hides the older turns.
+Token streaming is a separate call, astream_events, because updates and
+values fire when the node finishes. By then the model has already written
+the whole message. Events fire while it is still writing.
+The chatbot is the one from file 12 so the only new idea here is the stream.
+
 graph.invoke() waits until the graph finishes, then returns the final state.
 graph.stream() yields a piece after each node so you can show progress.
 
@@ -74,6 +88,10 @@ def example_stream_updates():
 
     print("stream_mode='updates' -> only the new write from each node.\n")
     for step, chunk in enumerate(
+        # Use: stream_mode="updates".
+        # Why: each chunk is only the node's new keys, shaped as
+        # {node_name: partial_state}. That is the right view for a log of
+        # "what just happened", and the wrong view if you need older turns.
         graph.stream(
             {"messages": [HumanMessage(content="Hi, my name is Krish and I like cricket.")]},
             config,
@@ -101,6 +119,9 @@ def example_stream_values():
     ]
     for turn in turns:
         print(f"\n===== user: {turn} =====")
+        # Use: stream_mode="values" on the same thread for two turns.
+        # Why: each chunk is the entire state. Turn 2's snapshot still
+        # contains turn 1, which is how you see memory inside a stream.
         for chunk in graph.stream(
             {"messages": [HumanMessage(content=turn)]},
             config,
@@ -117,6 +138,10 @@ async def _stream_tokens():
     config = {"configurable": {"thread_id": "stream-tokens"}}
 
     print("Tokens as the model writes them:\n")
+    # Use: astream_events, and keep only on_chat_model_stream.
+    # Why: this is async, so a script starts it with asyncio.run.
+    # version="v2" is the current event shape. Other events are chain
+    # start and chain end. Filtering keeps the tokens you would print in a UI.
     async for event in graph.astream_events(
         {"messages": [HumanMessage(content="In two sentences, what is LangGraph?")]},
         config,

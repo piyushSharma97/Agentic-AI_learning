@@ -2,6 +2,18 @@
 =============================================================================
 LANGGRAPH COMPONENT 8: CHAT MESSAGES AND CHAT MODELS
 =============================================================================
+USE
+Build the conversation object you will later store in graph state.
+A chat model call takes that list and returns one new AIMessage.
+
+WHY THIS APPROACH
+One big string cannot say who is the tutor and who is the student.
+Separate message classes carry the role, so the provider knows which
+lines are instructions, which are the user, and which are earlier replies.
+A list is used because order is the history: the model reads it top to bottom.
+This file stops before a graph. You need to see a message list on its own
+before file 09 stores that list in state.
+
 This is the first half of the "Chain Using LangGraph" notebook.
 
 A chat model does not want one big string. It wants a LIST of messages, and
@@ -35,6 +47,9 @@ def example_message_types():
     """Build a short conversation and print each role."""
     print("A conversation is just a list. Order matters: earlier messages are the history.\n")
 
+    # Use: a list, oldest message first.
+    # Why: the model treats earlier items as history. SystemMessage is first
+    # so the instruction applies to every reply, not as something the user said.
     messages = [
         SystemMessage(
             content="You are a friendly coding tutor. Keep answers short.",
@@ -56,10 +71,14 @@ def example_message_types():
 
 def example_invoke_chat_model():
     """Send a message list to the chat model and read the reply."""
-    # get_llm() reads GROQ / Google / OpenAI from the project .env.
-    # temperature=0 makes the reply stable, which is what you want while learning.
+    # Use: get_llm() so this lesson shares the model in config.py.
+    # Why: temperature=0 asks for the most likely next words. A higher
+    # temperature is for variety. While learning, a stable reply is easier to compare.
     llm = get_llm(temperature=0)
 
+    # Use: system instruction, then the user's question.
+    # Why: two roles in one list. The system line is not shown as the user's
+    # words, and the human line is the only thing the reply should answer.
     messages = [
         SystemMessage(content="You are a friendly coding tutor. Answer in two sentences."),
         HumanMessage(content="I want to learn Python. Where should I start?", name="Krish"),
@@ -69,7 +88,9 @@ def example_invoke_chat_model():
     for message in messages:
         message.pretty_print()
 
-    # invoke() is one request. It returns an AIMessage, not a plain string.
+    # Use: invoke(list_of_messages) for one complete reply.
+    # Why: the return is an AIMessage, not a str. You need the object later
+    # so a graph can store it, read tool_calls, and print the role.
     result = llm.invoke(messages)
 
     print("\nModel reply (AIMessage):")

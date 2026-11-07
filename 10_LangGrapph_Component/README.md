@@ -163,5 +163,7 @@ Lessons 08 through 13 keep one example running inside `main()`. Comment that cal
 
 Tavily examples need `TAVILY_API_KEY` in the project `.env`. Arxiv and Wikipedia do not.
 
+`GROQ_MODEL` in `.env` is `openai/gpt-oss-120b`. Groq no longer serves `llama-3.3-70b-versatile`, which is what the notebooks used to call.
+
 The combined ReAct runner is still `ReActAgents.py`.
 

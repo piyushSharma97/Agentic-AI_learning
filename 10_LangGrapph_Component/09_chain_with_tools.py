@@ -2,6 +2,20 @@
 =============================================================================
 LANGGRAPH COMPONENT 9: A CHAIN THAT CAN CALL A TOOL
 =============================================================================
+USE
+Connect a chat model to a Python function and run that function from a graph.
+First you only look at the requested call. Then a one-node graph asks for it.
+Then ToolNode runs it and the model writes the final sentence.
+
+WHY THIS APPROACH
+The model never runs your function. bind_tools only adds the function's
+name, types, and docstring to the request. The model answers with a
+tool call, which is data, and your process runs the function.
+A graph is used because there is a branch: if the reply has tool_calls,
+go run the tool; otherwise stop. The edge back to the model exists so
+the number 4 can become a sentence. A single llm.invoke cannot do that
+branch, and it cannot append the tool result to the history.
+
 This is the second half of the "Chain Using LangGraph" notebook.
 
 Three ideas, in the order you should run them:
@@ -47,8 +61,10 @@ from config import get_llm, print_mermaid, safe_run
 # ---------------------------------------------------------------------------
 # TOOL
 # ---------------------------------------------------------------------------
-# @tool turns a typed function into something the model can call.
-# The docstring is the description the model reads. Write it for the model.
+# Use: expose one function the model is allowed to request.
+# Why: @tool reads the type hints and the docstring and builds the schema.
+# The docstring is written for the model, not for you. "Add two integers"
+# is how it decides this function matches "2 plus 2".
 @tool
 def add(a: int, b: int) -> int:
     """Add two integers and return the sum."""
@@ -59,14 +75,19 @@ def add(a: int, b: int) -> int:
 # STATE
 # ---------------------------------------------------------------------------
 class State(TypedDict):
-    # add_messages appends new messages. It also matches messages by id
-    # so an update replaces a message instead of duplicating it.
+    # Use: the conversation itself is the graph state.
+    # Why: add_messages appends. Without it, the tool result would replace
+    # the user's question and the model would forget what was asked.
+    # File 04 shows that overwrite on its own.
     messages: Annotated[list[AnyMessage], add_messages]
 
 
 def example_see_a_tool_call():
     """Ask a math question and print the tool call. Nothing is executed yet."""
     llm = get_llm(temperature=0)
+    # Use: bind_tools returns a new model that knows about `add`.
+    # Why: the original llm is unchanged. Binding attaches the schema to
+    # this call only. Nothing here executes add(); that is a later node.
     llm_with_tools = llm.bind_tools([add])
 
     # "Use the add tool" matters. A strong model will otherwise just answer 4,
@@ -103,6 +124,9 @@ def example_llm_only_chain():
     builder = StateGraph(State)
     builder.add_node("assistant", assistant)
     builder.add_edge(START, "assistant")
+    # Use: a straight line with no tools node.
+    # Why: this example exists to show the gap. The model can request `add`,
+    # but with no ToolNode the graph ends holding the request, not the sum.
     builder.add_edge("assistant", END)
     graph = builder.compile()
 
@@ -130,6 +154,9 @@ def example_chain_that_runs_the_tool():
     builder.add_node("assistant", assistant)
     # ToolNode looks at the latest AIMessage, runs matching tools, and
     # appends a ToolMessage with the return value.
+    # Use: ToolNode is the prebuilt runner for whatever the model requested.
+    # Why: writing your own runner means matching tool name, parsing args,
+    # and catching errors. ToolNode already does that and returns a ToolMessage.
     builder.add_node("tools", ToolNode([add]))
 
     builder.add_edge(START, "assistant")

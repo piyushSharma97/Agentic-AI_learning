@@ -2,6 +2,18 @@
 =============================================================================
 LANGGRAPH COMPONENT 5: CHAINS & WORKFLOWS IN LANGGRAPH
 =============================================================================
+USE
+Run a fixed pipeline of model calls, either one after another or side by side.
+No tool is chosen here. The path is drawn with edges.
+
+WHY THIS APPROACH
+`prompt | llm | parser` is one hidden pipe. A StateGraph is used when you
+need to read the draft before the critique, or run two analysts at once
+and wait for both before the summary. The path is fixed because a chain
+does not decide its next step. File 06 is the approach when the model
+must choose a tool. Each step writes its own state key so a later node
+can read the earlier result without parsing one long string.
+
 WHY BUILD CHAINS IN LANGGRAPH INSTEAD OF BASIC LCEL?
 In basic LCEL (Prompt | LLM | Parser), the execution is a black-box pipeline.
 In LangGraph, chains are stateful DAGs (Directed Acyclic Graphs) offering:
@@ -30,6 +42,9 @@ from config import get_llm, print_mermaid, safe_run
 # PATTERN A: SEQUENTIAL MULTI-STAGE REFINEMENT CHAIN
 # ===========================================================================
 class EditorialChainState(TypedDict):
+    # Use: one key per step of the pipeline.
+    # Why: the critic reads `draft` and the editor reads `critique`.
+    # Separate keys keep each stage's output instead of overwriting one blob.
     topic: str
     target_audience: str
     draft: str
@@ -137,7 +152,9 @@ def build_parallel_chain_graph():
     builder.add_node("market_analyst", analyze_market)
     builder.add_node("synthesizer", synthesize_executive_summary)
 
-    # Fan-out: START connects to BOTH nodes simultaneously
+    # Use: two edges out of START.
+    # Why: the analysts do not depend on each other, so they run together.
+    # The synthesizer has edges from both, so it waits until both have written.
     builder.add_edge(START, "tech_analyst")
     builder.add_edge(START, "market_analyst")
 

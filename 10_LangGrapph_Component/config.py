@@ -2,6 +2,21 @@
 =============================================================================
 LangGraph Components - Shared Configuration & Utilities
 =============================================================================
+USE
+Shared setup for every lesson in this folder: load API keys, build the
+chat model, print a graph as text, and run a demo without a raw traceback.
+
+WHY THIS APPROACH
+Each lesson file would otherwise copy the same .env loading and the same
+ChatGroq(...) line. A change of model would have to be edited in 13 files.
+One function is used so the lessons stay about graphs, not about providers.
+Groq is tried first because this project is set up with GROQ_API_KEY.
+Google and OpenAI are the fallback when that key is absent, so a lesson
+still runs on another provider without an edit.
+Mermaid text is used instead of a PNG. A script has no Jupyter display,
+and text works in PowerShell. safe_run is used so a missing key prints
+a short reason and the next lesson is still easy to start.
+
 Centralizes:
 1. Environment variable loading (.env)
 2. Unified LLM factory supporting Groq, OpenAI, and Google GenAI
@@ -15,7 +30,9 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 
-# Locate and load the project root .env
+# Use: load the project .env once, when this module is imported.
+# Why: the keys live next to the repo root, not inside this folder.
+# Every lesson that imports config gets the keys without calling load_dotenv.
 root_dir = Path(__file__).resolve().parent.parent
 env_path = root_dir / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -35,6 +52,9 @@ def get_llm(provider: Optional[str] = None, model_name: Optional[str] = None, te
 
     provider = (provider or "").lower()
 
+    # Use: pick a provider from the argument, or from whichever key exists.
+    # Why: lessons call get_llm() with no provider. The order below prefers
+    # Groq, then Google, then OpenAI. Pass provider="openai" to override that.
     if provider == "groq" or (not provider and groq_key):
         from langchain_groq import ChatGroq
         # llama-3.3-70b-versatile was removed from Groq.
@@ -60,8 +80,9 @@ def get_llm(provider: Optional[str] = None, model_name: Optional[str] = None, te
 
 def print_mermaid(graph, title: str = "Graph Topology"):
     """
-    Prints the Mermaid diagram syntax for terminal inspection.
-    Safe across all terminals (Windows PowerShell, Linux bash, etc.)
+    Use: print the graph as Mermaid text after compile().
+    Why: draw_mermaid_png() needs Jupyter. Text shows the same arrows
+    in a terminal, which is how these lessons are run.
     """
     print(f"\n--- {title} (Mermaid Syntax) ---")
     try:
@@ -74,7 +95,9 @@ def print_mermaid(graph, title: str = "Graph Topology"):
 
 def safe_run(title: str, func):
     """
-    Executes a demo function with formatted header, timing, and error catch.
+    Use: run one example and catch failures.
+    Why: a bad API key or a network drop should print one explanation.
+    The lesson file stays readable, and main() can still list the other examples.
     """
     print("=" * 75)
     print(f"  DEMO: {title}")

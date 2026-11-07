@@ -2,6 +2,17 @@
 =============================================================================
 LANGGRAPH COMPONENT 1: STATE SCHEMA WITH TYPEDDICT
 =============================================================================
+USE
+The state schema is the shared notebook every node reads and writes.
+TypedDict is the schema you use while learning a graph: each node receives
+a dict and returns a dict of the fields it wants to change.
+
+WHY THIS APPROACH
+A plain dict has no field names, so `state["nmae"]` is a silent bug.
+TypedDict gives the editor those names with no runtime cost.
+It does not check values while the program runs. Use file 03 (Pydantic)
+when a bad webhook or form must be rejected before any node runs.
+
 WHAT IS A STATE SCHEMA?
 In LangGraph, every graph is a state machine. The "State" is the central,
 shared data container passed between nodes. Every node reads from the state,
@@ -52,6 +63,9 @@ class PlayerState(TypedDict):
 
 def start_session(state: PlayerState) -> dict:
     print(f"\n[Node: start_session] Welcome, {state['name']}!")
+    # Use: return only the keys this node changes.
+    # Why: LangGraph merges this dict into the state. Returning the whole
+    # state would force every node to copy fields it does not touch.
     return {"status": f"{state['name']} has entered the recreation arena."}
 
 
@@ -109,6 +123,9 @@ def build_typeddict_graph():
     builder.add_edge(START, "start_session")
 
     # 4. Add conditional routing edge from 'start_session'
+    # Use: a function that returns the next node name.
+    # Why: a normal edge is a fixed arrow. A conditional edge is used when
+    # the next step depends on the state, here the sport the player picked.
     builder.add_conditional_edges(
         "start_session",
         choose_sport,

@@ -2,6 +2,18 @@
 =============================================================================
 LANGGRAPH COMPONENT 6: REACT AGENT ARCHITECTURE
 =============================================================================
+USE
+Answer questions that need a calculator or a lookup, where you do not know
+the order of calls ahead of time.
+
+WHY THIS APPROACH
+A chain (file 05) hard-codes Draft then Critique. That cannot handle
+"add, then multiply the result" because the second call depends on the first
+answer. ReAct lets the model request a tool, reads the tool result, and
+either requests another tool or writes the final sentence.
+The loop is `tools -> assistant`. Stopping at the tool node would show
+the raw number and never the sentence.
+
 WHAT IS A REACT AGENT?
 ReAct stands for "Reasoning + Acting".
 Instead of hardcoding a sequence of actions, the LLM dynamically decides:
@@ -36,6 +48,9 @@ from config import get_llm, print_mermaid, safe_run
 # ===========================================================================
 # 1. DEFINE ROBUST, CRASH-FREE TOOLS
 # ===========================================================================
+# Use: @tool plus a docstring the model can read.
+# Why: a plain function has no name/description schema. bind_tools sends
+# that schema to the model. The docstring is the instruction for when to call it.
 @tool
 def add(a: float, b: float) -> float:
     """Add two numbers a and b."""
@@ -132,7 +147,9 @@ def build_react_agent():
     # If assistant emitted final text -> routes to END
     builder.add_conditional_edges("assistant", tools_condition)
 
-    # 7. CYCLIC EDGE: Send tool results back to Assistant so it can reason over them!
+    # Use: send the tool result back to the assistant.
+    # Why: ToolNode only runs Python. The model has to see the ToolMessage
+    # before it can write the answer the user actually reads.
     builder.add_edge("tools", "assistant")
 
     return builder.compile()

@@ -2,6 +2,17 @@
 =============================================================================
 LANGGRAPH COMPONENT 7: AGENT MEMORY & CHECKPOINTING (MEMORYSAVER)
 =============================================================================
+USE
+Keep a conversation across separate invoke() calls, and keep two users apart.
+
+WHY THIS APPROACH
+The model does not store your last question. Without a checkpointer, the
+second invoke starts from an empty state and "divide that by 5" has no "that".
+MemorySaver writes a snapshot after every node. thread_id picks which
+snapshot to load, so Alice and Bob can share one graph object.
+MemorySaver is RAM only: the memory is gone when the process exits.
+A database checkpointer is the same API when you need memory after a restart.
+
 THE PROBLEM:
 Without a checkpointer, an agent is stateless between successive `.invoke()` calls.
 If you ask:
@@ -89,7 +100,9 @@ def build_persistent_agent():
     # Initialize In-Memory Checkpointer
     checkpointer = MemorySaver()
 
-    # Compile WITH the checkpointer to activate persistent memory!
+    # Use: pass the checkpointer at compile time, and a thread_id at invoke time.
+    # Why: compile decides that memory exists. The thread_id decides whose
+    # memory this call reads. One without the other does not remember.
     return builder.compile(checkpointer=checkpointer)
 
 

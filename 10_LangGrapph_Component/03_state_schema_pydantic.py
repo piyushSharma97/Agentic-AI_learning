@@ -2,6 +2,17 @@
 =============================================================================
 LANGGRAPH COMPONENT 3: STATE SCHEMA WITH PYDANTIC (RUNTIME VALIDATION)
 =============================================================================
+USE
+Validate graph input before any node runs: types, ranges, and your own rules.
+This is the schema to use when the caller is a web form, webhook, or model JSON.
+
+WHY THIS APPROACH
+TypedDict and dataclass only help the editor. They accept `age: "nope"`.
+Pydantic is used because it checks the object as it is created, coerces
+safe values (`"28"` becomes `28`), and raises ValidationError so a bad
+request never enters `assess_fitness`. The cost is extra work on every input.
+Skip it for a trusted script. Use it at the boundary of an API.
+
 WHY PYDANTIC FOR STATE SCHEMAS?
 In production AI applications, graph inputs often come from untrusted sources:
 user web forms, external webhooks, LLM-generated JSON, or third-party APIs.
@@ -42,6 +53,9 @@ class PlayerPydanticState(BaseModel):
     stamina: int = Field(default=100, ge=0, le=100, description="Stamina score (0-100)")
     status: str = Field(default="Registered", description="Current status message")
 
+    # Use: a check that Field() cannot express, here the "PL-" prefix.
+    # Why: Field(ge=5) covers ranges. A prefix rule is your own logic, so it
+    # lives in a validator that runs before the graph starts.
     @field_validator("player_id")
     @classmethod
     def validate_player_id(cls, value: str) -> str:

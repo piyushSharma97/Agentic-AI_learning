@@ -2,6 +2,18 @@
 =============================================================================
 LANGGRAPH COMPONENT 12: A CHATBOT THAT REMEMBERS THE THREAD
 =============================================================================
+USE
+A chatbot with no tools that still knows your name on the next question.
+
+WHY THIS APPROACH
+Calling the model directly forgets the previous invoke. The memory is
+the graph state, saved by a checkpointer under a thread_id.
+MemorySaver is used because it needs no database and is enough to see
+the idea. It lives in RAM and is gone when the script exits.
+The same compiled graph serves every thread. The thread_id, not a new
+graph, is what keeps Krish's chat away from someone else's chat.
+There is no tool loop here so you can see memory by itself. File 07 adds tools.
+
 This is the graph that the streaming notebook builds before it streams.
 
 No tools. One node calls the chat model and writes the reply into messages.
@@ -39,6 +51,9 @@ from config import get_llm, print_mermaid, safe_run
 
 
 class State(TypedDict):
+    # Use: one growing list of messages for this thread.
+    # Why: the checkpointer saves this list. add_messages makes each new
+    # turn append, so turn 2 still contains "my name is Krish".
     messages: Annotated[list[AnyMessage], add_messages]
 
 
@@ -56,7 +71,9 @@ def build_chatbot():
     builder.add_edge(START, "assistant")
     builder.add_edge("assistant", END)
 
-    # MemorySaver keeps checkpoints in RAM. They disappear when the script exits.
+    # Use: MemorySaver as the checkpointer.
+    # Why: compile is the moment memory is turned on. A graph compiled
+    # without it starts empty on every invoke, even with a thread_id.
     return builder.compile(checkpointer=MemorySaver())
 
 
@@ -69,6 +86,9 @@ def example_remember_across_turns():
     graph = build_chatbot()
     print_mermaid(graph, "Simple chatbot")
 
+    # Use: thread_id names the saved conversation.
+    # Why: the checkpointer stores many chats. This id selects Krish's.
+    # Reusing the id on turn 2 is what loads turn 1. A new id would not.
     config = {"configurable": {"thread_id": "krish-1"}}
 
     print("Turn 1")

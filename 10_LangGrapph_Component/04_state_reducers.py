@@ -2,6 +2,19 @@
 =============================================================================
 LANGGRAPH COMPONENT 4: STATE REDUCERS (OVERWRITING VS ACCUMULATING)
 =============================================================================
+USE
+Decide what happens when two nodes write the same state key.
+Default: the second write replaces the first.
+With a reducer: the second write is merged into the first.
+
+WHY THIS APPROACH
+Overwrite is right for a status string: only the latest value matters.
+It is the wrong default for a chat, because the new reply would delete
+the user's question. `Annotated[list, add_messages]` is used on messages
+so each node appends. `operator.add` is the same idea for a score or a log.
+The reducer lives on the schema, not inside the node, so every node can
+return "my new piece" without knowing the history.
+
 THE PROBLEM:
 By default in LangGraph, if node A returns `{"score": 10}` and node B returns
 `{"score": 20}`, what is the final score?
@@ -35,7 +48,9 @@ from config import print_mermaid, safe_run
 # 1. GRAPH WITHOUT REDUCER (DEFAULT OVERWRITE BEHAVIOR)
 # ===========================================================================
 class OverwriteState(TypedDict):
-    # Standard list without reducer annotation
+    # Use: a field with no Annotated reducer.
+    # Why: this is the default on purpose, so you can see the wipe-out.
+    # A chat state should not look like this. See ChatAgentState below.
     messages: List[str]
 
 
@@ -72,9 +87,10 @@ def demo_without_reducer():
 # 2. GRAPH WITH REDUCER (ACCUMULATING / APPENDING)
 # ===========================================================================
 class AppendingState(TypedDict):
-    # Annotated with operator.add: new elements are concatenated to the existing list!
+    # Use: operator.add as the reducer for a list and for a number.
+    # Why: the node returns only its own delta ("+15", one new log line).
+    # LangGraph calls operator.add(old, new) instead of replacing old.
     log: Annotated[List[str], operator.add]
-    # Annotated with operator.add for numbers: running counter accumulator!
     total_score: Annotated[int, operator.add]
 
 
@@ -118,7 +134,10 @@ def demo_with_list_and_int_reducer():
 # 3. THE AGENT REDUCER: add_messages
 # ===========================================================================
 class ChatAgentState(TypedDict):
-    # Built-in LangGraph message reducer
+    # Use: add_messages on every agent and chatbot in this folder.
+    # Why: operator.add would glue lists together but would not understand
+    # message ids. add_messages appends, and if a message id already exists
+    # it replaces that message instead of storing a duplicate.
     messages: Annotated[List[AnyMessage], add_messages]
 
 
