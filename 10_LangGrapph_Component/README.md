@@ -1,31 +1,32 @@
 # LangGraph Components: Architecture, State Schemas, Chains & ReAct Agents
 
-Welcome to the comprehensive guide for **LangGraph Components**. This directory contains modular, thoroughly explained, and crash-free implementations of every foundational building block of LangGraph.
+Welcome to the comprehensive, hands-on learning hub for **LangGraph Components**. Every topic in this curriculum is organized into its own dedicated folder containing:
+1. An in-depth **`README.md`** explaining core theory, flow diagrams, state transitions, and edge cases.
+2. A clean, fully annotated **`main.py`** script with step-by-step flow comments, mental models, and revision notes.
 
 ---
 
-## 📂 File Structure & Learning Roadmap
+## 📂 Modular Curriculum & Folder Structure
 
-| # | File | Topic | Key Concepts |
+| # | Topic Directory | Code File | Key Learning Objectives |
 |---|---|---|---|
-| **01** | [`01_state_schema_typeddict.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/01_state_schema_typeddict.py) | **State Schema: TypedDict** | Dictionary syntax, fast execution, static type hints, conditional edges. |
-| **02** | [`02_state_schema_dataclass.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/02_state_schema_dataclass.py) | **State Schema: DataClasses** | Object attribute access (`state.name`), default values, class methods. |
-| **03** | [`03_state_schema_pydantic.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/03_state_schema_pydantic.py) | **State Schema: Pydantic** | **Runtime validation**, type coercion, field bounds, input sanitization. |
-| **04** | [`04_state_reducers.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/04_state_reducers.py) | **State Reducers** | **Crucial Concept**: Overwriting vs Accumulating (`Annotated[..., add_messages]`). |
-| **05** | [`05_chains_langgraph.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/05_chains_langgraph.py) | **Chains & Workflows** | Sequential pipelines (Draft $\to$ Critique $\to$ Polish) & Parallel Fan-out / Fan-in. |
-| **06** | [`06_react_agent.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/06_react_agent.py) | **ReAct Agent Architecture** | `ToolNode`, `tools_condition`, dynamic reasoning, cyclic graph loops. |
-| **07** | [`07_agent_memory_checkpointer.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/07_agent_memory_checkpointer.py) | **Memory & Checkpointing** | `MemorySaver`, `thread_id` session isolation, multi-turn state persistence. |
-| **08** | [`08_messages_and_chat_models.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/08_messages_and_chat_models.py) | **Messages & Chat Models** | `HumanMessage`, `AIMessage`, `SystemMessage`, `invoke`, `response_metadata`. |
-| **09** | [`09_chain_with_tools.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/09_chain_with_tools.py) | **Chain With a Tool** | `bind_tools`, one-node chain, `ToolNode` loop back to the model. |
-| **10** | [`10_search_tools.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/10_search_tools.py) | **Search Tools Alone** | Arxiv, Wikipedia, and Tavily called directly. |
-| **11** | [`11_multi_tool_chatbot.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/11_multi_tool_chatbot.py) | **Multi-Tool Chatbot** | Model picks Arxiv, Wikipedia, or Tavily, then summarizes. |
-| **12** | [`12_simple_chatbot.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/12_simple_chatbot.py) | **Plain Chatbot Memory** | One-node chatbot, `MemorySaver`, separate `thread_id`s. |
-| **13** | [`13_streaming.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/13_streaming.py) | **Streaming** | `stream_mode="updates"`, `stream_mode="values"`, token events. |
-| **Ref**| [`ReActAgents.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/ReActAgents.py) | **Unified ReAct Runner** | Complete clean runner combining tools, ReAct loop, and memory. |
+| **01** | [**`01_state_schema_typeddict/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/01_state_schema_typeddict/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/01_state_schema_typeddict/main.py) | **State Schema: TypedDict**<br>Dictionary syntax, fast execution, static type hints, conditional edges, lack of runtime enforcement. |
+| **02** | [**`02_state_schema_dataclass/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/02_state_schema_dataclass/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/02_state_schema_dataclass/main.py) | **State Schema: DataClasses**<br>Object attribute dot access (`state.name`), default values (`score=0`), class helper methods, automatic dict coercion. |
+| **03** | [**`03_state_schema_pydantic/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/03_state_schema_pydantic/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/03_state_schema_pydantic/main.py) | **State Schema: Pydantic**<br>**Strict runtime validation**, type coercion, field constraints (`ge=5`), custom `@field_validator`s, input sanitization. |
+| **04** | [**`04_state_reducers/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/04_state_reducers/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/04_state_reducers/main.py) | **State Reducers**<br>**Crucial Concept**: Overwriting vs Accumulating (`Annotated[..., operator.add]` vs `Annotated[..., add_messages]`). |
+| **05** | [**`05_chains_langgraph/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/05_chains_langgraph/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/05_chains_langgraph/main.py) | **Chains & Workflows**<br>Sequential pipelines (Draft $\to$ Critique $\to$ Polish) & Parallel Fan-out / Fan-in (Tech + Market $\to$ Synthesis). |
+| **06** | [**`06_react_agent/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/06_react_agent/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/06_react_agent/main.py) | **ReAct Agent Architecture**<br>`ToolNode`, `tools_condition`, dynamic reasoning, and the cyclic loop (`tools -> assistant`). |
+| **07** | [**`07_agent_memory_checkpointer/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/07_agent_memory_checkpointer/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/07_agent_memory_checkpointer/main.py) | **Memory & Checkpointing**<br>`MemorySaver`, `thread_id` session isolation, multi-turn state persistence across `.invoke()` calls. |
+| **08** | [**`08_messages_and_chat_models/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/08_messages_and_chat_models/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/08_messages_and_chat_models/main.py) | **Messages & Chat Models**<br>`HumanMessage`, `AIMessage`, `SystemMessage`, `pretty_print()`, and inspecting `response_metadata`. |
+| **09** | [**`09_chain_with_tools/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/09_chain_with_tools/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/09_chain_with_tools/main.py) | **Chain With a Tool**<br>The 3 progressive stages: raw `bind_tools`, 1-node chain, and the full ToolNode loop back to the assistant. |
+| **10** | [**`10_search_tools/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/10_search_tools/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/10_search_tools/main.py) | **Search Tools Alone**<br>arXiv research client, Wikipedia summaries, and Tavily real-time web search tested independently. |
+| **11** | [**`11_multi_tool_chatbot/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/11_multi_tool_chatbot/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/11_multi_tool_chatbot/main.py) | **Multi-Tool Chatbot**<br>Autonomous model routing between arXiv, Wikipedia, and Tavily based on semantic docstrings. |
+| **12** | [**`12_simple_chatbot/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/12_simple_chatbot/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/12_simple_chatbot/main.py) | **Plain Chatbot Memory**<br>Minimalist 1-node conversational chatbot, `MemorySaver`, and strict `thread_id` session isolation. |
+| **13** | [**`13_streaming/`**](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/13_streaming/README.md) | [`main.py`](file:///d:/Learning/KrishNaik/Agentic-AI/10_LangGrapph_Component/13_streaming/main.py) | **Streaming**<br>`stream_mode="updates"`, `stream_mode="values"`, and real-time token streaming with `astream_events("v2")`. |
 
 ---
 
-## 🧠 Core LangGraph Concepts: What You Need to Know
+## 🧠 Core LangGraph Concepts: Quick Reference
 
 ### 1. State Schemas: Which One Should You Choose?
 
@@ -53,18 +54,14 @@ In LangGraph, **State** is the single source of truth passed to every node. You 
 
 ### 2. State Reducers: Overwriting vs. Accumulating
 
-This is the **#1 trap** for newcomers to LangGraph.
-
 When a node returns a dictionary `{"messages": [new_msg]}`, what happens to the existing messages?
 
-* **WITHOUT a Reducer:**
-  LangGraph **OVERWRITES** the state key.
+* **WITHOUT a Reducer:** LangGraph **OVERWRITES** the state key.
   ```python
   class BadState(TypedDict):
       messages: list  # Node 2 replaces Node 1's messages!
   ```
-* **WITH a Reducer (`Annotated`):**
-  LangGraph calls the reducer function to merge/append the update to existing state.
+* **WITH a Reducer (`Annotated`):** LangGraph calls the reducer function to merge or append updates to existing state:
   ```python
   from langgraph.graph.message import add_messages
 
@@ -98,7 +95,6 @@ flowchart TD
 ### 4. Memory & Checkpointing (`MemorySaver` & `thread_id`)
 
 LLMs and vanilla graphs are stateless. To enable multi-turn memory:
-
 1. **Checkpointer:** `MemorySaver()` writes snapshots of the graph state to memory after each step.
 2. **`thread_id`:** Indexes conversations so different users don't share or collide with each other's state:
    ```python
@@ -112,58 +108,27 @@ LLMs and vanilla graphs are stateless. To enable multi-turn memory:
 
 ---
 
-## 🚀 How to Run the Code
+## 🚀 How to Run Any Topic
 
-Run any script directly using your project virtual environment:
+You can run any topic either from the project root or from inside that topic's directory:
 
 ```powershell
-# 1. State Schema with TypedDict
-python 10_LangGrapph_Component/01_state_schema_typeddict.py
+# Run from project root:
+python 10_LangGrapph_Component/01_state_schema_typeddict/main.py
+python 10_LangGrapph_Component/02_state_schema_dataclass/main.py
+python 10_LangGrapph_Component/03_state_schema_pydantic/main.py
+python 10_LangGrapph_Component/04_state_reducers/main.py
+python 10_LangGrapph_Component/05_chains_langgraph/main.py
+python 10_LangGrapph_Component/06_react_agent/main.py
+python 10_LangGrapph_Component/07_agent_memory_checkpointer/main.py
+python 10_LangGrapph_Component/08_messages_and_chat_models/main.py
+python 10_LangGrapph_Component/09_chain_with_tools/main.py
+python 10_LangGrapph_Component/10_search_tools/main.py
+python 10_LangGrapph_Component/11_multi_tool_chatbot/main.py
+python 10_LangGrapph_Component/12_simple_chatbot/main.py
+python 10_LangGrapph_Component/13_streaming/main.py
 
-# 2. State Schema with Dataclasses
-python 10_LangGrapph_Component/02_state_schema_dataclass.py
-
-# 3. State Schema with Pydantic Runtime Validation
-python 10_LangGrapph_Component/03_state_schema_pydantic.py
-
-# 4. State Reducers (Overwriting vs Accumulating)
-python 10_LangGrapph_Component/04_state_reducers.py
-
-# 5. Chains & Workflows (Sequential & Parallel)
-python 10_LangGrapph_Component/05_chains_langgraph.py
-
-# 6. ReAct Agent Architecture
-python 10_LangGrapph_Component/06_react_agent.py
-
-# 7. Agent Memory & Multi-Turn Checkpointing
-python 10_LangGrapph_Component/07_agent_memory_checkpointer.py
-
-# 8. Chat messages, then a real chat-model call
-python 10_LangGrapph_Component/08_messages_and_chat_models.py
-
-# 9. bind_tools, a one-node chain, then a chain that runs the tool
-python 10_LangGrapph_Component/09_chain_with_tools.py
-
-# 10. Arxiv, Wikipedia, and Tavily by themselves
-python 10_LangGrapph_Component/10_search_tools.py
-
-# 11. Chatbot that chooses among those tools
-python 10_LangGrapph_Component/11_multi_tool_chatbot.py
-
-# 12. Plain chatbot with thread memory
-python 10_LangGrapph_Component/12_simple_chatbot.py
-
-# 13. Stream updates, full state, or tokens
-python 10_LangGrapph_Component/13_streaming.py
+# Or navigate into any folder:
+cd 10_LangGrapph_Component/01_state_schema_typeddict
+python main.py
 ```
-
-Lessons 08 through 13 keep one example running inside `main()`. Comment that call and uncomment the next function when you want the next example.
-
-`ChainsLangGraph.py`, `chatbotswithmultipletools.py`, and `streaming.py` were the original notebook dumps. They now point at the lessons above.
-
-Tavily examples need `TAVILY_API_KEY` in the project `.env`. Arxiv and Wikipedia do not.
-
-`GROQ_MODEL` in `.env` is `openai/gpt-oss-120b`. Groq no longer serves `llama-3.3-70b-versatile`, which is what the notebooks used to call.
-
-The combined ReAct runner is still `ReActAgents.py`.
-
