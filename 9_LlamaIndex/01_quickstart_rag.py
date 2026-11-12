@@ -25,10 +25,8 @@
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-# Load API keys (such as OPENAI_API_KEY) from .env file
-load_dotenv()
+import config  # loads the repo-root .env before LlamaIndex reads the keys
 
 # Verify that OPENAI_API_KEY is available
 if not os.getenv("OPENAI_API_KEY"):
@@ -145,11 +143,9 @@ def main():
     print("LLAMAINDEX INTRO PRACTICE: QUICKSTART RAG")
     print("=" * 65)
 
-    # Run Example 1: In-memory docs
+    # Both examples run. Comment a line to skip that example.
     example_1_in_memory_documents()
-
-    # Run Example 2: Loading from data directory
-    # example_2_directory_reader()
+    example_2_directory_reader()
 
     print("\n" + "=" * 65)
     print("EXECUTION COMPLETED")

@@ -4,11 +4,13 @@ LangGraph Workflows - Shared Configuration & Utilities
 =============================================================================
 USE:
 Shared configuration for all workflow patterns in this folder:
-- Prompt Chaining (Lessons 109-110)
-- Parallelization (Lesson 111)
-- Routing (Lesson 112)
-- Orchestrator-Worker (Lessons 113-114)
-- Evaluator-Optimizer (Lesson 115)
+- 109_prompt_chaining.py
+- 110_prompt_chaining_langgraph.py
+- 111_parallelization.py
+- 112_routing.py
+- 113_orchestrator_worker.py
+- 114_orchestrator_worker_langgraph.py
+- 115_evaluator_optimizer.py
 
 WHY THIS APPROACH:
 Each pattern file focuses strictly on the workflow topology and graph logic,

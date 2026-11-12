@@ -7,8 +7,8 @@ and multi-modal enterprise AI assistants.
 
 ## Remote Work Policy
 1. Work Hours: TechFlow supports flexible working hours. Core collaborative hours are 10:00 AM to 2:00 PM PST.
-2. Home Office Stipend: Every full-time employee receives a one-time \$1,500 home office setup budget
-   and a recurring \$100 monthly internet reimbursement.
+2. Home Office Stipend: Every full-time employee receives a one-time $1,500 home office setup budget
+   and a recurring $100 monthly internet reimbursement.
 3. Equipment: Standard engineering setup includes a 16-inch MacBook Pro or equivalent Dell XPS 15,
    plus two external 4K monitors upon request.
 

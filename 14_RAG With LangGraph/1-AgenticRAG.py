@@ -1,319 +1,245 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
+"""
+=============================================================================
+AGENTIC RAG
+=============================================================================
 
-os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
-os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
+Retrieval is a tool. The model decides whether to call it, and which
+knowledge base to call.
 
+    START
+      |
+    agent ---- no tool call ----> END
+      |
+      | tool call
+      v
+    retrieve
+      |
+    grade
+      |
+      +-- relevant --------> generate --> END
+      |
+      +-- not relevant ----> rewrite --> agent
 
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+Two retrievers are two tools:
 
+    search_langgraph   notes on graphs, nodes, edges, checkpointers
+    search_langchain   notes on prompts, models, tools, chat history
 
-urls=[
-    "https://langchain-ai.github.io/langgraph/tutorials/introduction/",
-    "https://langchain-ai.github.io/langgraph/tutorials/workflows/",
-    "https://langchain-ai.github.io/langgraph/how-tos/map-reduce/"
-]
+tools_condition reads the agent's last message. If that message contains
+tool calls, the graph goes to retrieve. ToolNode runs the tool the model
+named and appends a ToolMessage.
 
-docs=[WebBaseLoader(url).load() for url in urls]
-docs
+The grader is its own node. It writes relevant=True or False into state.
+The router after it only reads that flag. A rewrite is allowed once.
+After that the graph answers with whatever was retrieved, so a bad grade
+cannot loop forever.
 
+Run:
+    python "14_RAG With LangGraph/1-AgenticRAG.py"
+=============================================================================
+"""
 
-docs_list = [item for sublist in docs for item in sublist]
+from typing import Annotated, Literal, TypedDict
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=100
-)
-
-doc_splits = text_splitter.split_documents(docs_list)
-
-## Add alll these text to vectordb
-
-vectorstore=FAISS.from_documents(
-    documents=doc_splits,
-    embedding=OpenAIEmbeddings()
-)
-
-
-retriever=vectorstore.as_retriever()
-
-
-retriever.invoke("what is langgraph")
-
-### Retriever To Retriever Tools
-from langchain.tools.retriever import create_retriever_tool
-retriever_tool=create_retriever_tool(
-    retriever,
-    "retriever_vector_db_blog",
-    "Search and run information about Langgraph"
-)
-
-
-retriever_tool
-
-
- # Langchain Blogs- Seperate Vector Store
-
-
-langchain_urls=[
-    "https://python.langchain.com/docs/tutorials/",
-    "https://python.langchain.com/docs/tutorials/chatbot/",
-    "https://python.langchain.com/docs/tutorials/qa_chat_history/"
-]
-
-docs=[WebBaseLoader(url).load() for url in langchain_urls]
-docs
-
-docs_list = [item for sublist in docs for item in sublist]
-
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=100
-)
-
-doc_splits = text_splitter.split_documents(docs_list)
-
-## Add alll these text to vectordb
-
-vectorstorelangchain=FAISS.from_documents(
-    documents=doc_splits,
-    embedding=OpenAIEmbeddings()
-)
-
-
-retrieverlangchain=vectorstorelangchain.as_retriever()
-
-from langchain.tools.retriever import create_retriever_tool
-
-retriever_tool_langchain=create_retriever_tool(
-    retrieverlangchain,
-    "retriever_vector_langchain_blog",
-    "Search and run information about Langchain"
-)
-
-tools=[retriever_tool,retriever_tool_langchain]
-
-# LangGraph Workflow
-
-
-from typing import Annotated, Sequence
-from typing_extensions import TypedDict
-
-from langchain_core.messages import BaseMessage
-
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from config import get_llm, print_banner, print_mermaid, safe_run
+from corpus import (
+    LANGCHAIN_NOTES,
+    LANGGRAPH_NOTES,
+    build_retriever,
+    make_retriever_tool,
+    preview_retrieval,
+)
+from grading import is_relevant
+
+
+MAX_REWRITES = 1
+
+SYSTEM = """You answer from the project notes by calling a tool first.
+Use search_langgraph for LangGraph: nodes, edges, state, checkpointers, interrupts.
+Use search_langchain for LangChain: prompts, chat models, tools, message history.
+Call one tool. After a tool result is already in the conversation, write the answer from that result.
+"""
 
 
 class AgentState(TypedDict):
-    # The add_messages function defines how an update should be processed
-    # Default is to replace. add_messages says "append"
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-
-from langchain_groq import ChatGroq
-
-llm=ChatGroq(model="qwen-qwq-32b")
-llm.invoke("Hi")
-
-
-def agent(state):
     """
-    Invokes the agent model to generate a response based on the current state. Given
-    the question, it will decide to retrieve using the retriever tool, or simply end.
-
-    Args:
-        state (messages): The current state
-
-    Returns:
-        dict: The updated state with the agent response appended to messages
-    """
-    print("---CALL AGENT---")
-    messages = state["messages"]
-    model = ChatGroq(model="qwen-qwq-32b")
-    model = model.bind_tools(tools)
-    response = model.invoke(messages)
-    # We return a list, because this will get added to the existing list
-    return {"messages": [response]}
-
-from typing import Annotated, Literal, Sequence
-from typing_extensions import TypedDict
-
-from langchain import hub
-from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
-
-from pydantic import BaseModel, Field
-
-### Edges
-def grade_documents(state) -> Literal["generate", "rewrite"]:
-    """
-    Determines whether the retrieved documents are relevant to the question.
-
-    Args:
-        state (messages): The current state
-
-    Returns:
-        str: A decision for whether the documents are relevant or not
+    messages uses add_messages, so a node returns new messages and LangGraph
+    appends them. The other fields are replaced by whatever the node returns.
     """
 
-    print("---CHECK RELEVANCE---")
+    messages: Annotated[list, add_messages]
+    relevant: bool
+    rewrites: int
 
-    # Data model
-    class grade(BaseModel):
-        """Binary score for relevance check."""
 
-        binary_score: str = Field(description="Relevance score 'yes' or 'no'")
+def latest_human(messages) -> str:
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage):
+            return message.content
+    return ""
 
-    # LLM
-    model = ChatGroq(model="qwen-qwq-32b")
 
-    # LLM with tool and validation
-    llm_with_tool = model.with_structured_output(grade)
+def latest_tool_context(messages) -> str:
+    """Join the tool results that belong to the latest retrieval."""
+    chunks: list[str] = []
+    for message in reversed(messages):
+        if isinstance(message, ToolMessage):
+            chunks.append(message.content)
+        elif chunks:
+            break
+    return "\n\n".join(reversed(chunks))
 
-    # Prompt
-    prompt = PromptTemplate(
-        template="""You are a grader assessing relevance of a retrieved document to a user question. \n 
-        Here is the retrieved document: \n\n {context} \n\n
-        Here is the user question: {question} \n
-        If the document contains keyword(s) or semantic meaning related to the user question, grade it as relevant. \n
-        Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question.""",
-        input_variables=["context", "question"],
-    )
 
-    # Chain
-    chain = prompt | llm_with_tool
+def build_graph():
+    llm = get_llm(temperature=0)
+    langgraph_retriever = build_retriever(LANGGRAPH_NOTES, "langgraph")
+    langchain_retriever = build_retriever(LANGCHAIN_NOTES, "langchain")
+    tools = [
+        make_retriever_tool(
+            langgraph_retriever,
+            "search_langgraph",
+            "Search the LangGraph notes about graphs, nodes, edges, and checkpointers.",
+        ),
+        make_retriever_tool(
+            langchain_retriever,
+            "search_langchain",
+            "Search the LangChain notes about prompts, models, tools, and chat history.",
+        ),
+    ]
+    agent_model = llm.bind_tools(tools)
 
-    messages = state["messages"]
-    last_message = messages[-1]
+    def agent(state: AgentState) -> dict:
+        print("[node] agent")
+        response = agent_model.invoke(state["messages"])
+        calls = getattr(response, "tool_calls", None) or []
+        if calls:
+            names = ", ".join(call["name"] for call in calls)
+            print(f"[node] agent requested: {names}")
+        else:
+            print("[node] agent answered without a tool")
+        return {"messages": [response]}
 
-    question = messages[0].content
-    docs = last_message.content
+    def grade(state: AgentState) -> dict:
+        """Judge the latest tool result. The router will read `relevant`."""
+        print("[node] grade")
+        question = latest_human(state["messages"])
+        context = latest_tool_context(state["messages"])
+        relevant = bool(context) and is_relevant(llm, question, context)
+        return {"relevant": relevant}
 
-    scored_result = chain.invoke({"question": question, "context": docs})
-
-    score = scored_result.binary_score
-
-    if score == "yes":
-        print("---DECISION: DOCS RELEVANT---")
-        return "generate"
-
-    else:
-        print("---DECISION: DOCS NOT RELEVANT---")
-        print(score)
+    def route_after_grade(state: AgentState) -> Literal["generate", "rewrite"]:
+        if state["relevant"]:
+            print("[route] notes can answer the question -> generate")
+            return "generate"
+        if state["rewrites"] >= MAX_REWRITES:
+            print("[route] rewrite limit reached -> generate with the current notes")
+            return "generate"
+        print("[route] notes missed the question -> rewrite")
         return "rewrite"
 
-def generate(state):
-    """
-    Generate answer
+    def rewrite(state: AgentState) -> dict:
+        """
+        Append a new human question. The original question stays in history.
+        The agent runs again and can pick a tool with the clearer query.
+        """
+        print("[node] rewrite")
+        question = latest_human(state["messages"])
+        response = llm.invoke([
+            SystemMessage(content="Turn the question into a short search query. Return only the query."),
+            HumanMessage(content=question),
+        ])
+        query = response.content.strip()
+        print(f"[node] rewrite query: {query}")
+        return {
+            "messages": [HumanMessage(content=query)],
+            "rewrites": state["rewrites"] + 1,
+        }
 
-    Args:
-        state (messages): The current state
+    def generate(state: AgentState) -> dict:
+        print("[node] generate")
+        question = latest_human(state["messages"])
+        context = latest_tool_context(state["messages"])
+        response = llm.invoke([
+            SystemMessage(content="Answer in a short paragraph using only the notes. If they do not contain the answer, say so."),
+            HumanMessage(content=f"Question:\n{question}\n\nNotes:\n{context}"),
+        ])
+        return {"messages": [AIMessage(content=response.content.strip())]}
 
-    Returns:
-         dict: The updated message
-    """
-    print("---GENERATE---")
-    messages = state["messages"]
-    question = messages[0].content
-    last_message = messages[-1]
+    graph = StateGraph(AgentState)
+    graph.add_node("agent", agent)
+    graph.add_node("retrieve", ToolNode(tools))
+    graph.add_node("grade", grade)
+    graph.add_node("rewrite", rewrite)
+    graph.add_node("generate", generate)
 
-    docs = last_message.content
+    graph.add_edge(START, "agent")
+    # tools_condition returns "tools" or "__end__". The map sends "tools" to our retrieve node.
+    graph.add_conditional_edges(
+        "agent",
+        tools_condition,
+        {"tools": "retrieve", "__end__": END},
+    )
+    graph.add_edge("retrieve", "grade")
+    graph.add_conditional_edges(
+        "grade",
+        route_after_grade,
+        {"generate": "generate", "rewrite": "rewrite"},
+    )
+    graph.add_edge("generate", END)
+    graph.add_edge("rewrite", "agent")
 
-    # Prompt
-    prompt = hub.pull("rlm/rag-prompt")
+    preview_retrieval(langgraph_retriever, "What does a checkpointer save?")
+    return graph.compile()
 
-    # LLM
-    llm = ChatGroq(model="qwen-qwq-32b")
 
-    # Post-processing
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+def show_result(result: AgentState) -> None:
+    print("\n--- conversation ---")
+    for message in result["messages"]:
+        if isinstance(message, SystemMessage):
+            continue
+        if isinstance(message, AIMessage) and message.tool_calls:
+            for call in message.tool_calls:
+                print(f"AI tool call: {call['name']} {call.get('args')}")
+            continue
+        label = message.type
+        text = message.content if isinstance(message.content, str) else str(message.content)
+        print(f"{label}: {text[:500]}")
+    print(f"\nrewrites used: {result['rewrites']}")
 
-    # Chain
-    rag_chain = prompt | llm | StrOutputParser()
 
-    # Run
-    response = rag_chain.invoke({"context": docs, "question": question})
-    return {"messages": [response]}
-def rewrite(state):
-    """
-    Transform the query to produce a better question.
+def run_demo() -> None:
+    print_banner(
+        "AGENTIC RAG",
+        "The model chooses a retriever tool. A grader can send the question back once.",
+    )
+    graph = build_graph()
+    print_mermaid(graph, "Agentic RAG")
 
-    Args:
-        state (messages): The current state
-
-    Returns:
-        dict: The updated state with re-phrased question
-    """
-
-    print("---TRANSFORM QUERY---")
-    messages = state["messages"]
-    question = messages[0].content
-
-    msg = [
-        HumanMessage(
-            content=f""" \n 
-    Look at the input and try to reason about the underlying semantic intent / meaning. \n 
-    Here is the initial question:
-    \n ------- \n
-    {question} 
-    \n ------- \n
-    Formulate an improved question: """,
-        )
+    questions = [
+        "What does a LangGraph checkpointer save, and what is a thread id?",
+        "How does a LangChain chatbot remember earlier messages?",
     ]
-
-    # Grader
-    model = ChatGroq(model="qwen-qwq-32b")
-    response = model.invoke(msg)
-    return {"messages": [response]}
-
-from langgraph.graph import END, StateGraph, START
-from langgraph.prebuilt import ToolNode
-from langgraph.prebuilt import tools_condition
-
-# Define a new graph
-workflow = StateGraph(AgentState)
-
-# Define the nodes we will cycle between
-workflow.add_node("agent", agent)  # agent
-retrieve = ToolNode([retriever_tool,retriever_tool_langchain])
-workflow.add_node("retrieve", retrieve)  # retrieval
-workflow.add_node("rewrite", rewrite)  # Re-writing the question
-workflow.add_node(
-    "generate", generate
-)  # Generating a response after we know the documents are relevant
-# Call agent node to decide to retrieve or not
-workflow.add_edge(START, "agent")
-
-# Decide whether to retrieve
-workflow.add_conditional_edges(
-    "agent",
-    # Assess agent decision
-    tools_condition,
-    {
-        # Translate the condition outputs to nodes in our graph
-        "tools": "retrieve",
-        END: END,
-    },
-)
-
-# Edges taken after the `action` node is called.
-workflow.add_conditional_edges(
-    "retrieve",
-    # Assess agent decision
-    grade_documents,
-)
-workflow.add_edge("generate", END)
-workflow.add_edge("rewrite", "agent")
-
-# Compile
-graph = workflow.compile()
-from IPython.display import Image, display
-display(Image(graph.get_graph(xray=True).draw_mermaid_png()))
+    for question in questions:
+        print("\n" + "=" * 72)
+        print("QUESTION:", question)
+        result = graph.invoke(
+            {
+                "messages": [
+                    SystemMessage(content=SYSTEM),
+                    HumanMessage(content=question),
+                ],
+                "relevant": False,
+                "rewrites": 0,
+            },
+            {"recursion_limit": 12},
+        )
+        show_result(result)
 
 
-graph.invoke({"messages":"What is Langgraph?"})
-
-graph.invoke({"messages":"What is Machine learning?"})
+if __name__ == "__main__":
+    safe_run("Agentic RAG", run_demo)

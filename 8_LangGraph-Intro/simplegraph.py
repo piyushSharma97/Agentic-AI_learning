@@ -96,9 +96,9 @@ def random_play(state: State) -> Literal["cricket", "badminton"]:
 
     # 50/50 chance to branch to cricket or badminton
     if random.random() > 0.5:
-        return "cricket"
+        return "play_cricket"
 
-    return "badminton"
+    return "play_badminton"
 
 
 # ============================================================
@@ -126,14 +126,18 @@ graph.add_node("badminton", badminton)
 # START -> "start_play":
 #   START is a special LangGraph constant representing graph entry.
 #   Execution always begins at "start_play".
-graph.add_edge(START, "start_play")
+graph.add_edge(START, "start_play") #  START -> "start_play"
 
 # Conditional Edge:
 #   After "start_play" completes, LangGraph calls random_play(state).
 #   The return value ("cricket" or "badminton") determines which node runs next.
 graph.add_conditional_edges(
     "start_play",
-    random_play
+    random_play,
+      {
+        "play_cricket": "cricket",
+        "play_badminton": "badminton",
+    }
 )
 
 # Terminal Edges:

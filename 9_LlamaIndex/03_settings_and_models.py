@@ -24,9 +24,8 @@
 # ============================================================
 
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+import config  # loads the repo-root .env before LlamaIndex reads the keys
 
 from llama_index.core import Settings, Document, VectorStoreIndex
 
@@ -98,9 +97,9 @@ def configure_groq_llm():
     try:
         from llama_index.llms.groq import Groq
 
-        # Configure Groq with Llama 3.3 70B
+        # llama-3.3-70b-versatile is no longer served. GROQ_MODEL overrides the default.
         groq_llm = Groq(
-            model="llama-3.3-70b-versatile",
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
             api_key=groq_api_key,
             temperature=0
         )
@@ -147,14 +146,14 @@ def main():
 
     inspect_default_settings()
 
-    # Configure models
+    # Each block runs on its own. Comment a block to skip that provider.
     if os.getenv("OPENAI_API_KEY"):
         configure_openai_models()
-        # example_query_with_configured_settings()
+        example_query_with_configured_settings()
 
     if os.getenv("GROQ_API_KEY"):
-        # configure_groq_llm()
-        pass
+        configure_groq_llm()
+        example_query_with_configured_settings()
 
     print("\n" + "=" * 65)
     print("EXECUTION COMPLETED")

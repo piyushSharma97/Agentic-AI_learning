@@ -1,184 +1,32 @@
-# Complete Agentic AI Bootcamp With LangGraph and LangChain
+# Agentic AI
 
+Course notes for LangChain, LangGraph, and LlamaIndex. Each numbered folder is one part of the course. `langchain-imports.md` is the import index: the list at the top links to each import in the file.
 
+Keys live in the root `.env`. That file is gitignored.
 
-# Overview
+```powershell
+uv sync
+.\.venv\Scripts\Activate.ps1
+python "9_LlamaIndex/01_quickstart_rag.py"
+```
 
-Complete Agentic AI Bootcamp With LangGraph and LangChain is a comprehensive, hands-on repository designed to teach modern Agentic AI engineering through real-world implementations, production-ready workflows, and enterprise-level AI system architectures.
+Status is a study marker for the folder as it sits today: **understood**, **copied**, **to review**, or **skipped for now**.
 
-This repository focuses on building intelligent AI systems using:
-
-* LangGraph orchestration
-* LangChain frameworks
-* Multi-agent architectures
-* Tool-augmented AI systems
-* Retrieval-Augmented Generation (RAG)
-* Stateful AI workflows
-* AI memory systems
-* Autonomous decision-making pipelines
-
-The project is structured as a practical engineering bootcamp where modern AI concepts are implemented through real applications rather than theory-only tutorials.
-
-It serves as a strong foundation for becoming an industry-grade Agentic AI Engineer capable of designing scalable, modular, production-ready AI systems.
-
----
-
-# Core Learning Objectives
-
-## Agentic AI Engineering
-
-* Understanding Agentic AI systems
-* Building autonomous AI workflows
-* Multi-agent system design
-* AI planning and reasoning pipelines
-* Intelligent task orchestration
-
-## LangGraph Engineering
-
-* Stateful workflow orchestration
-* Graph-based AI execution flows
-* Conditional routing logic
-* Agent communication systems
-* Memory-aware workflow design
-
-## LangChain Development
-
-* Chains and pipelines
-* Prompt templates
-* Tool integrations
-* LLM orchestration
-* Output parsers
-* Conversational AI systems
-
-## Retrieval-Augmented Generation (RAG)
-
-* Vector database integration
-* Semantic search workflows
-* Document ingestion pipelines
-* Embedding generation
-* Hybrid retrieval systems
-* Context-aware AI responses
-
-## Production AI Engineering
-
-* Modular AI architecture
-* API integration workflows
-* Scalable AI backend systems
-* AI deployment workflows
-* Observability and monitoring concepts
-* Enterprise AI engineering patterns
-
----
-
-# Key Features
-
-# Multi-Agent AI Systems
-
-* Planner Agents
-* Executor Agents
-* Tool Router Agents
-* Retriever Agents
-* Memory Agents
-* Decision-Making Agents
-* Reflection & Evaluation Agents
-* Conversational Agents
-
----
-
-# LangGraph Workflows
-
-* Stateful graph execution
-* Dynamic routing
-* Conditional branching
-* Multi-stage reasoning
-* Agent collaboration
-* Retry and fallback handling
-* Persistent workflow states
-
----
-
-# RAG Pipelines
-
-* PDF ingestion systems
-* URL content ingestion
-* Vector embeddings
-* Semantic retrieval
-* Context compression
-* Query understanding
-* Knowledge-grounded AI responses
-
----
-
-# Tool-Augmented AI
-
-* Web Search Tools
-* PDF Processing
-* Database Integration
-* API Tool Usage
-* External Knowledge Access
-* Dynamic Tool Selection
-
----
-
-# Memory Systems
-
-* Short-term memory
-* Long-term memory
-* Conversation history
-* Context persistence
-* AI memory orchestration
-
----
-# What You Will Learn
-
-This repository helps learners understand how modern AI systems are built in production environments.
-
-You will learn:
-
-* How AI agents reason and act
-* How tools are integrated into LLM systems
-* How multi-agent workflows collaborate
-* How RAG systems retrieve knowledge
-* How AI memory systems work
-* How LangGraph manages stateful orchestration
-* How scalable AI systems are deployed
-
-## LangChain Fundamentals
-
-* Chains
-* Prompts
-* Memory
-* Tools
-* Agents
-
----
-
-## LangGraph Fundamentals
-
-* Graph nodes
-* Edges
-* State management
-* Conditional workflows
-* Multi-agent orchestration
-
----
-
-## RAG Engineering
-
-* Chunking
-* Embeddings
-* Retrieval
-* Vector search
-* Context fusion
-
----
-
-## AI Agent Systems
-
-* Autonomous workflows
-* Task planning
-* Reflection systems
-* Tool routing
-* Adaptive execution
-
----
+| Folder | What it covers | Status |
+| --- | --- | --- |
+| `1_Python` | Python from variables and control flow through files, classes, logging, SQLite, FastAPI, and Pydantic | to review |
+| `2_Langchain` | Document loaders, text splitters, embeddings, and Chroma and FAISS stores | copied |
+| `3_LangChainUsecase` | Ten runnable use cases: prompts, structured output, memory, tools, agents, LCEL, RAG, model switching, multi-agent, and evaluation | understood |
+| `4_GenAI` | Small OpenAI and Ollama apps, including a web-page RAG demo | copied |
+| `5_LCEL` | One prompt, model, and parser chain written with LCEL | copied |
+| `6_Building AI agents With Conver` | A chatbot built in seven steps: one message, history, prompts, language input, and trimming | understood |
+| `7_Langchain Version V1` | LangChain v1 models, tools, messages, structured output, `create_agent`, and middleware | to review |
+| `8_LangGraph-Intro` | A first `StateGraph`, then a chatbot whose messages use `add_messages` | copied |
+| `9_LlamaIndex` | Five lessons: build an index, documents versus nodes, `Settings`, retrieval and chat, and an agent with tools | understood |
+| `10_LangGrapph_Component` | LangGraph state schemas, reducers, chains, ReAct, checkpointers, search tools, and streaming | understood |
+| `11_debugging_langGraph` | One tool-calling graph and a LangGraph Studio `langgraph.json` | to review |
+| `12_Different Workflows In LangGraph` | Prompt chaining, parallelization, routing, orchestrator-worker, and evaluator-optimizer | understood |
+| `13_Human_in_the_loop` | Pause a run, approve or edit a tool call, change state, replay a checkpoint, and interrupt from inside a node | understood |
+| `14_RAG With LangGraph` | Agentic, corrective, and adaptive RAG over a local note corpus | to review |
+| `extra` | `speech.txt`, sample text for the earlier loader lessons | skipped for now |
+| `src` | Package stub. `main()` prints one hello line | skipped for now |

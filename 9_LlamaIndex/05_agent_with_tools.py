@@ -21,11 +21,11 @@
 # - `FunctionTool`: Wraps any standard Python function into a tool.
 # ============================================================
 
+import asyncio
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+import config  # loads the repo-root .env before LlamaIndex reads the keys
 
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.tools import FunctionTool, QueryEngineTool, ToolMetadata
@@ -88,14 +88,56 @@ def create_agent():
     # 4. Initialize LLM (gpt-4o-mini is fast and follows tool schema well)
     llm = OpenAI(model="gpt-4o-mini", temperature=0)
 
-    # 5. Build the ReAct Agent
-    agent = ReActAgent.from_tools(
+    # Current ReActAgent is constructed directly. from_tools() and .chat()
+    # belong to the older agent API and are not on this class.
+    # verbose=True prints each Thought / Action / Observation step.
+    agent = ReActAgent(
         tools=[handbook_tool, calculator_tool],
         llm=llm,
-        verbose=True  # verbose=True prints the step-by-step Thought/Action/Observation loop!
+        verbose=True,
+    )
+    return agent
+
+
+async def ask(agent, question: str) -> None:
+    """Run one user message and print the assistant text."""
+    result = await agent.run(user_msg=question)
+    message = getattr(result, "response", result)
+    text = getattr(message, "content", message)
+    print(f"\nFinal Agent Answer:\n{text}\n")
+
+
+async def example_handbook_only(agent) -> None:
+    """
+    The handbook tool is enough. The agent should search the document
+    and leave the calculator unused.
+    """
+    print("\n" + "=" * 65)
+    print("TASK 1: Document search only")
+    print("=" * 65)
+    await ask(agent, "What are the core collaboration hours at TechFlow?")
+
+
+async def example_handbook_and_calculator(agent) -> None:
+    """
+    The stipend amounts live in the handbook, and the total is a calculation.
+    A useful agent calls the handbook, then the calculator. This prompt
+    names the calculator so the lesson shows that tool path.
+    """
+    print("\n" + "=" * 65)
+    print("TASK 2: Handbook plus calculator")
+    print("=" * 65)
+    await ask(
+        agent,
+        "If I am hiring a team of 5 engineers, what will be their total first-year "
+        "home office and internet budget? Use the budget calculator tool.",
     )
 
-    return agent
+
+async def run_examples(agent) -> None:
+    """One event loop for every task. Comment a line to skip that task."""
+    await example_handbook_only(agent)
+    await example_handbook_and_calculator(agent)
 
 
 def main():
@@ -108,21 +150,7 @@ def main():
         return
 
     agent = create_agent()
-
-    print("\n" + "=" * 65)
-    print("TASK 1: Query requiring only Document Search")
-    print("=" * 65)
-    response_1 = agent.chat("What are the core collaboration hours at TechFlow?")
-    print(f"\nFinal Agent Answer:\n{response_1}\n")
-
-    print("\n" + "=" * 65)
-    print("TASK 2: Multi-step Query requiring Calculation")
-    print("=" * 65)
-    response_2 = agent.chat(
-        "If I am hiring a team of 5 engineers, what will be their total first-year "
-        "home office and internet budget? Use the budget calculator tool."
-    )
-    print(f"\nFinal Agent Answer:\n{response_2}\n")
+    asyncio.run(run_examples(agent))
 
 
 if __name__ == "__main__":

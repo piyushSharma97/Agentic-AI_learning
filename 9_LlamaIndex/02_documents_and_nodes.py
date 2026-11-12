@@ -24,9 +24,7 @@
 # 5. Building an index directly from Nodes (instead of raw documents)
 # ============================================================
 
-from dotenv import load_dotenv
-
-load_dotenv()
+import config  # loads the repo-root .env before LlamaIndex reads the keys
 
 from llama_index.core import Document, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
@@ -147,9 +145,10 @@ def main():
     print("LLAMAINDEX INTRO PRACTICE: DOCUMENTS & NODES")
     print("=" * 65)
 
+    # All three examples run. Comment a line to skip that example.
     example_1_documents_and_metadata()
     example_2_chunking_with_sentence_splitter()
-    # example_3_build_index_from_nodes()
+    example_3_build_index_from_nodes()
 
     print("\n" + "=" * 65)
     print("EXECUTION COMPLETED")

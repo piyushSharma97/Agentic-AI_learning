@@ -23,9 +23,8 @@
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+import config  # loads the repo-root .env before LlamaIndex reads the keys
 
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 
@@ -140,14 +139,10 @@ def main():
     # Load data once
     index = load_sample_index()
 
-    # 1. Test pure retriever (no LLM generation)
+    # All three layers run on the same index. Comment a line to skip one.
     example_1_pure_retriever(index)
-
-    # 2. Test one-shot query engine
-    # example_2_query_engine(index)
-
-    # 3. Test multi-turn conversational chat engine
-    # example_3_chat_engine(index)
+    example_2_query_engine(index)
+    example_3_chat_engine(index)
 
     print("\n" + "=" * 65)
     print("EXECUTION COMPLETED")

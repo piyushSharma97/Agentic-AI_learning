@@ -112,8 +112,7 @@ graph.add_node("SuperBot", superbot)
 #   START -> "SuperBot" -> END
 # (User input enters at START, gets processed by SuperBot, and finishes at END)
 graph.add_edge(START, "SuperBot")
-graph.add_edge("SuperBot", END)
-
+ 
 
 # ============================================================
 # 8. COMPILE GRAPH
@@ -156,7 +155,7 @@ print("=" * 60)
 for chunk, metadata in graph_builder.stream(
     {
         "messages": [
-            HumanMessage(content="Explain LangGraph.")
+            HumanMessage(content="Explain India.")
         ]
     },
     stream_mode="messages"

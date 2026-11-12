@@ -1,17 +1,121 @@
-# LangChain imports used in this project
+# LangChain and LangGraph imports used in this project
 
-Every LangChain-related import found across the course folders, with what it is for and a small example.
+Every LangChain and LangGraph import used across the course folders, with what it is for and a small example.
 
 Folders scanned:
 
 - `2_Langchain`
+- `3_LangChainUsecase`
 - `4_GenAI`
 - `5_LCEL`
 - `6_Building AI agents With Conver`
 - `7_Langchain Version V1`
+- `8_LangGraph-Intro`
+- `10_LangGrapph_Component`
+- `11_debugging_langGraph`
+- `12_Different Workflows In LangGraph`
+- `13_Human_in_the_loop`
+- `14_RAG With LangGraph`
 - `dummy.py`
 
 ---
+
+<a id="contents"></a>
+
+## Contents
+
+Click an import to jump to that section.
+
+### langchain
+
+- [`langchain`](#langchain) — Check the installed version
+- [`langchain.agents.create_agent`](#langchain-agents-create-agent) — Build a v1 tool-calling agent
+- [`langchain.agents.middleware.SummarizationMiddleware`](#langchain-agents-middleware-summarizationmiddleware) — Summarize long chats
+- [`langchain.agents.middleware.HumanInTheLoopMiddleware`](#langchain-agents-middleware-humanintheloopmiddleware) — Pause a tool call for approval
+- [`langchain.agents.structured_output.ToolStrategy`](#langchain-agents-structured-output-toolstrategy) — Agent replies as a schema
+- [`langchain.chat_models.init_chat_model`](#langchain-chat-models-init-chat-model) — One call for any provider
+- [`langchain.tools.tool`](#langchain-tools-tool) — Turn a function into a tool (v1 package)
+- [`langchain.chains.create_retrieval_chain`](#langchain-chains-create-retrieval-chain) — RAG: retrieve, then answer
+- [`langchain.chains.combine_documents.create_stuff_documents_chain`](#langchain-chains-combine-documents-create-stuff-documents-chain) — Put retrieved chunks into one prompt
+
+### langchain_core
+
+- [`langchain_core.messages.HumanMessage`](#langchain-core-messages-humanmessage) — User turn
+- [`langchain_core.messages.SystemMessage`](#langchain-core-messages-systemmessage) — Role and rules
+- [`langchain_core.messages.AIMessage`](#langchain-core-messages-aimessage) — Assistant turn
+- [`langchain_core.messages.ToolMessage`](#langchain-core-messages-toolmessage) — Tool result sent back to the model
+- [`langchain_core.messages.AnyMessage`](#langchain-core-messages-anymessage) — Type for any chat message
+- [`langchain_core.messages.trim_messages`](#langchain-core-messages-trim-messages) — Cut history to a token budget
+- [`langchain_core.prompts.ChatPromptTemplate`](#langchain-core-prompts-chatprompttemplate) — Prompt with placeholders
+- [`langchain_core.prompts.MessagesPlaceholder`](#langchain-core-prompts-messagesplaceholder) — Slot for chat history
+- [`langchain_core.output_parsers.StrOutputParser`](#langchain-core-output-parsers-stroutputparser) — Message to a plain string
+- [`langchain_core.output_parsers.PydanticOutputParser`](#langchain-core-output-parsers-pydanticoutputparser) — Parse model text into a Pydantic object
+- [`langchain_core.chat_history.BaseChatMessageHistory`](#langchain-core-chat-history-basechatmessagehistory) — History interface
+- [`langchain_core.chat_history.InMemoryChatMessageHistory`](#langchain-core-chat-history-inmemorychatmessagehistory) — RAM chat history for one session
+- [`langchain_core.runnables.RunnablePassthrough`](#langchain-core-runnables-runnablepassthrough) — Pass or add keys in an LCEL chain
+- [`langchain_core.runnables.RunnableLambda`](#langchain-core-runnables-runnablelambda) — Put a Python function in an LCEL chain
+- [`langchain_core.runnables.history.RunnableWithMessageHistory`](#langchain-core-runnables-history-runnablewithmessagehistory) — Load and save history around a chain
+- [`langchain_core.documents.Document`](#langchain-core-documents-document) — Text plus metadata for loaders and search
+- [`langchain_core.vectorstores.InMemoryVectorStore`](#langchain-core-vectorstores-inmemoryvectorstore) — Vector store that lives in process memory
+- [`langchain_core.tools.tool`](#langchain-core-tools-tool) — Turn a function into a tool (core package)
+- [`langchain_core.tools.StructuredTool`](#langchain-core-tools-structuredtool) — Build a tool from an existing function
+
+### langchain_community
+
+- [`langchain_community.document_loaders.TextLoader`](#langchain-community-document-loaders-textloader) — Load a text file
+- [`langchain_community.document_loaders.PyPDFLoader`](#langchain-community-document-loaders-pypdfloader) — Load a PDF
+- [`langchain_community.document_loaders.WebBaseLoader`](#langchain-community-document-loaders-webbaseloader) — Load a web page
+- [`langchain_community.vectorstores.Chroma`](#langchain-community-vectorstores-chroma) — Older Chroma vector store import
+- [`langchain_community.vectorstores.FAISS`](#langchain-community-vectorstores-faiss) — Local FAISS index
+- [`langchain_community.chat_message_histories.ChatMessageHistory`](#langchain-community-chat-message-histories-chatmessagehistory) — In-memory session history
+
+### langchain_text_splitters
+
+- [`langchain_text_splitters.CharacterTextSplitter`](#langchain-text-splitters-charactertextsplitter) — Split on one separator
+- [`langchain_text_splitters.RecursiveCharacterTextSplitter`](#langchain-text-splitters-recursivecharactertextsplitter) — Split by paragraphs, then lines, then words
+
+### langchain_openai
+
+- [`langchain_openai.ChatOpenAI`](#langchain-openai-chatopenai) — OpenAI chat model
+- [`langchain_openai.OpenAIEmbeddings`](#langchain-openai-openaiembeddings) — OpenAI embeddings
+
+### langchain_google_genai
+
+- [`langchain_google_genai.ChatGoogleGenerativeAI`](#langchain-google-genai-chatgooglegenerativeai) — Gemini chat model
+
+### langchain_groq
+
+- [`langchain_groq.ChatGroq`](#langchain-groq-chatgroq) — Groq chat model
+
+### langchain_ollama
+
+- [`langchain_ollama.ChatOllama`](#langchain-ollama-chatollama) — Local Ollama chat model
+- [`langchain_ollama.OllamaEmbeddings`](#langchain-ollama-ollamaembeddings) — Local Ollama embeddings
+
+### langchain_huggingface
+
+- [`langchain_huggingface.HuggingFaceEmbeddings`](#langchain-huggingface-huggingfaceembeddings) — Local Hugging Face embeddings
+
+### langchain_chroma
+
+- [`langchain_chroma.Chroma`](#langchain-chroma-chroma) — Current Chroma package
+
+### langgraph
+
+- [`langgraph.graph.StateGraph`](#langgraph-graph-stategraph) — Build a graph of nodes, edges, and state
+- [`langgraph.graph.START`](#langgraph-graph-start) — Edge target for the first node
+- [`langgraph.graph.END`](#langgraph-graph-end) — Edge target that finishes the run
+- [`langgraph.graph.MessagesState`](#langgraph-graph-messagesstate) — Built-in state with a messages list
+- [`langgraph.graph.message.add_messages`](#langgraph-graph-message-add-messages) — Append chat messages instead of overwriting them
+- [`langgraph.prebuilt.ToolNode`](#langgraph-prebuilt-toolnode) — Run tool calls and write ToolMessages
+- [`langgraph.prebuilt.tools_condition`](#langgraph-prebuilt-tools-condition) — Route to tools or END from the last message
+- [`langgraph.checkpoint.memory.MemorySaver`](#langgraph-checkpoint-memory-memorysaver) — Save graph state in RAM by thread id
+- [`langgraph.types.Send`](#langgraph-types-send) — Fan out one node copy per item
+- [`langgraph.types.interrupt`](#langgraph-types-interrupt) — Pause inside a node until a person answers
+- [`langgraph.types.Command`](#langgraph-types-command) — Resume a paused graph with a value
+- [`langgraph.checkpoint.memory.InMemorySaver`](#langgraph-checkpoint-memory-inmemorysaver) — Checkpointer used by create_agent
+
+<a id="langchain"></a>
 
 ## `langchain`
 
@@ -34,6 +138,8 @@ print(langchain.__version__)
 ```
 
 ---
+
+<a id="langchain-agents-create-agent"></a>
 
 ## `langchain.agents.create_agent`
 
@@ -72,6 +178,8 @@ print(response["messages"][-1].content)
 
 ---
 
+<a id="langchain-agents-middleware-summarizationmiddleware"></a>
+
 ## `langchain.agents.middleware.SummarizationMiddleware`
 
 **Import**
@@ -105,6 +213,56 @@ agent = create_agent(
 ```
 
 ---
+
+<a id="langchain-agents-middleware-humanintheloopmiddleware"></a>
+
+## `langchain.agents.middleware.HumanInTheLoopMiddleware`
+
+**Import**
+
+```python
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+```
+
+**Used in:** `7_Langchain Version V1/6-middleWare.py`
+
+**Use case:** Pause a v1 agent before a chosen tool runs, so a person can approve, reject, or edit the call. Tools set to `False` in `interrupt_on` still run on their own. This needs a checkpointer and the same `thread_id` when you resume with `Command`.
+
+**Example**
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
+agent = create_agent(
+    model="gpt-4o-mini",
+    tools=[send_email],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "send_email": {"allowed_decisions": ["approve", "edit", "reject"]},
+            }
+        )
+    ],
+)
+
+config = {"configurable": {"thread_id": "hitl-approve"}}
+paused = agent.invoke(
+    {"messages": [{"role": "user", "content": "Send a hello email to ada@example.com"}]},
+    config=config,
+)
+agent.invoke(
+    Command(resume={"decisions": [{"type": "approve"}]}),
+    config=config,
+)
+```
+
+---
+
+<a id="langchain-agents-structured-output-toolstrategy"></a>
 
 ## `langchain.agents.structured_output.ToolStrategy`
 
@@ -143,6 +301,8 @@ print(result["structured_response"])
 
 ---
 
+<a id="langchain-chat-models-init-chat-model"></a>
+
 ## `langchain.chat_models.init_chat_model`
 
 **Import**
@@ -166,6 +326,8 @@ print(response.content)
 ```
 
 ---
+
+<a id="langchain-tools-tool"></a>
 
 ## `langchain.tools.tool`
 
@@ -194,6 +356,8 @@ model_with_tools = model.bind_tools([get_weather])
 
 ---
 
+<a id="langchain-chains-create-retrieval-chain"></a>
+
 ## `langchain.chains.create_retrieval_chain`
 
 **Import**
@@ -221,6 +385,8 @@ print(result["answer"])
 
 ---
 
+<a id="langchain-chains-combine-documents-create-stuff-documents-chain"></a>
+
 ## `langchain.chains.combine_documents.create_stuff_documents_chain`
 
 **Import**
@@ -247,6 +413,8 @@ document_chain = create_stuff_documents_chain(llm, prompt)
 
 ---
 
+<a id="langchain-core-messages-humanmessage"></a>
+
 ## `langchain_core.messages.HumanMessage`
 
 **Import**
@@ -271,6 +439,8 @@ print(response.content)
 ```
 
 ---
+
+<a id="langchain-core-messages-systemmessage"></a>
 
 ## `langchain_core.messages.SystemMessage`
 
@@ -297,6 +467,8 @@ print(response.content)
 ```
 
 ---
+
+<a id="langchain-core-messages-aimessage"></a>
 
 ## `langchain_core.messages.AIMessage`
 
@@ -325,6 +497,8 @@ response = model.invoke(messages)
 ```
 
 ---
+
+<a id="langchain-core-messages-toolmessage"></a>
 
 ## `langchain_core.messages.ToolMessage`
 
@@ -364,6 +538,36 @@ response = model.invoke(messages)
 
 ---
 
+<a id="langchain-core-messages-anymessage"></a>
+
+## `langchain_core.messages.AnyMessage`
+
+**Import**
+
+```python
+from langchain_core.messages import AnyMessage
+```
+
+**Used in:** `8_LangGraph-Intro/chatbot.py`, `10_LangGrapph_Component/04_state_reducers/main.py`, `10_LangGrapph_Component/06_react_agent/main.py`, `10_LangGrapph_Component/12_simple_chatbot/main.py`
+
+**Use case:** Type hint for "any chat message": human, AI, system, or tool. Pair it with `add_messages` when the state field must accept every message kind the graph will store.
+
+**Example**
+
+```python
+from typing import Annotated
+from typing_extensions import TypedDict
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+```
+
+---
+
+<a id="langchain-core-messages-trim-messages"></a>
+
 ## `langchain_core.messages.trim_messages`
 
 **Import**
@@ -394,6 +598,8 @@ response = model.invoke(trimmed)
 
 ---
 
+<a id="langchain-core-prompts-chatprompttemplate"></a>
+
 ## `langchain_core.prompts.ChatPromptTemplate`
 
 **Import**
@@ -422,6 +628,8 @@ print(chain.invoke({"language": "Hindi", "question": "What is LCEL?"}))
 
 ---
 
+<a id="langchain-core-prompts-messagesplaceholder"></a>
+
 ## `langchain_core.prompts.MessagesPlaceholder`
 
 **Import**
@@ -448,6 +656,8 @@ prompt = ChatPromptTemplate.from_messages([
 
 ---
 
+<a id="langchain-core-output-parsers-stroutputparser"></a>
+
 ## `langchain_core.output_parsers.StrOutputParser`
 
 **Import**
@@ -472,6 +682,46 @@ print(chain.invoke({"topic": "embeddings"}))
 ```
 
 ---
+
+<a id="langchain-core-output-parsers-pydanticoutputparser"></a>
+
+## `langchain_core.output_parsers.PydanticOutputParser`
+
+**Import**
+
+```python
+from langchain_core.output_parsers import PydanticOutputParser
+```
+
+**Used in:** `3_LangChainUsecase/2_structured_output.py`
+
+**Use case:** Ask the model for text that matches a Pydantic model, then parse that text into the model. `get_format_instructions()` is the block you paste into the prompt. Newer code often uses `model.with_structured_output(...)` instead, which is what the same lesson recommends first.
+
+**Example**
+
+```python
+from pydantic import BaseModel, Field
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+
+class ActionItem(BaseModel):
+    task: str = Field(description="What to do")
+    owner: str = Field(description="Who does it")
+
+parser = PydanticOutputParser(pydantic_object=ActionItem)
+prompt = ChatPromptTemplate.from_template(
+    "Extract an action item.\n{format_instructions}\n\nNotes:\n{notes}"
+)
+chain = prompt | llm | parser
+item = chain.invoke({
+    "notes": "Priya will send the recap by Friday.",
+    "format_instructions": parser.get_format_instructions(),
+})
+```
+
+---
+
+<a id="langchain-core-chat-history-basechatmessagehistory"></a>
 
 ## `langchain_core.chat_history.BaseChatMessageHistory`
 
@@ -501,6 +751,37 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 ---
 
+<a id="langchain-core-chat-history-inmemorychatmessagehistory"></a>
+
+## `langchain_core.chat_history.InMemoryChatMessageHistory`
+
+**Import**
+
+```python
+from langchain_core.chat_history import InMemoryChatMessageHistory
+```
+
+**Used in:** `3_LangChainUsecase/3_memory.py`
+
+**Use case:** A ready-made chat history that lives in RAM and already implements `BaseChatMessageHistory`. Use one instance per session id, then hand it to `RunnableWithMessageHistory`. The history is gone when the process stops.
+
+**Example**
+
+```python
+from langchain_core.chat_history import InMemoryChatMessageHistory
+
+store: dict[str, InMemoryChatMessageHistory] = {}
+
+def get_session_history(session_id: str) -> InMemoryChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = InMemoryChatMessageHistory()
+    return store[session_id]
+```
+
+---
+
+<a id="langchain-core-runnables-runnablepassthrough"></a>
+
 ## `langchain_core.runnables.RunnablePassthrough`
 
 **Import**
@@ -526,6 +807,38 @@ chain = (
 ```
 
 ---
+
+<a id="langchain-core-runnables-runnablelambda"></a>
+
+## `langchain_core.runnables.RunnableLambda`
+
+**Import**
+
+```python
+from langchain_core.runnables import RunnableLambda
+```
+
+**Used in:** `3_LangChainUsecase/6_chain.py`, `3_LangChainUsecase/8_model_switching.py`
+
+**Use case:** Wrap a normal Python function so it can sit in an LCEL chain with `|`. The same lesson also imports `RunnableParallel` (run several branches on one input) and `RunnableBranch` (pick a branch with a condition).
+
+**Example**
+
+```python
+from langchain_core.runnables import RunnableLambda, RunnableParallel
+
+def word_count(text: str) -> int:
+    return len(text.split())
+
+chain = RunnableParallel(
+    answer=prompt | llm | parser,
+    words=parser | RunnableLambda(word_count),
+)
+```
+
+---
+
+<a id="langchain-core-runnables-history-runnablewithmessagehistory"></a>
 
 ## `langchain_core.runnables.history.RunnableWithMessageHistory`
 
@@ -559,6 +872,120 @@ chain_with_history.invoke(
 
 ---
 
+<a id="langchain-core-documents-document"></a>
+
+## `langchain_core.documents.Document`
+
+**Import**
+
+```python
+from langchain_core.documents import Document
+```
+
+**Used in:** `3_LangChainUsecase/7_document_processing.py`, `14_RAG With LangGraph/corpus.py`, `14_RAG With LangGraph/2-CorrectiveRAG.py`, `14_RAG With LangGraph/3-AdaptiveRAG.py`
+
+**Use case:** One unit of text plus metadata. Loaders, splitters, and vector stores all pass `Document` objects around. `page_content` is the text. `metadata` holds the source name, page, or anything you want to show with a retrieved chunk.
+
+**Example**
+
+```python
+from langchain_core.documents import Document
+
+note = Document(
+    page_content="LangGraph saves state after each super-step.",
+    metadata={"source": "langgraph-checkpointer"},
+)
+```
+
+---
+
+<a id="langchain-core-vectorstores-inmemoryvectorstore"></a>
+
+## `langchain_core.vectorstores.InMemoryVectorStore`
+
+**Import**
+
+```python
+from langchain_core.vectorstores import InMemoryVectorStore
+```
+
+**Used in:** `3_LangChainUsecase/7_document_processing.py`, `14_RAG With LangGraph/corpus.py`, `14_RAG With LangGraph/3-AdaptiveRAG.py`
+
+**Use case:** A vector store that keeps embeddings in process memory. It has the same `add_documents` and `as_retriever` methods as FAISS or Chroma, so a RAG graph can be written before you pick a database. The index disappears when the process stops.
+
+**Example**
+
+```python
+from langchain_core.vectorstores import InMemoryVectorStore
+
+store = InMemoryVectorStore(embedding=embeddings)
+store.add_documents(chunks)
+retriever = store.as_retriever(search_kwargs={"k": 3})
+docs = retriever.invoke("How does a checkpointer work?")
+```
+
+---
+
+<a id="langchain-core-tools-tool"></a>
+
+## `langchain_core.tools.tool`
+
+**Import**
+
+```python
+from langchain_core.tools import tool
+```
+
+**Used in:** `3_LangChainUsecase/4_tool_calling.py`, `3_LangChainUsecase/5_agent.py`, `10_LangGrapph_Component/06_react_agent/main.py`, `10_LangGrapph_Component/09_chain_with_tools/main.py`, `11_debugging_langGraph/openAi.py`, `13_Human_in_the_loop/config.py`
+
+**Use case:** Same job as `langchain.tools.tool`: turn a typed Python function into a tool schema. The core import is the one the LangGraph lessons use. The v1 package re-exports it for `create_agent`.
+
+**Example**
+
+```python
+from langchain_core.tools import tool
+
+@tool
+def add(a: float, b: float) -> float:
+    """Add two numbers a and b."""
+    return a + b
+```
+
+---
+
+<a id="langchain-core-tools-structuredtool"></a>
+
+## `langchain_core.tools.StructuredTool`
+
+**Import**
+
+```python
+from langchain_core.tools import StructuredTool
+```
+
+**Used in:** `14_RAG With LangGraph/corpus.py`
+
+**Use case:** Build a tool from a function you already wrote, and set the name and description yourself. Useful when the function is created inside another function, so the `@tool` decorator is awkward.
+
+**Example**
+
+```python
+from langchain_core.tools import StructuredTool
+
+def search(query: str) -> str:
+    return retriever.invoke(query)[0].page_content
+
+search_notes = StructuredTool.from_function(
+    func=search,
+    name="search_notes",
+    description="Search the local LangGraph notes.",
+)
+```
+
+---
+
+<a id="langchain-community-document-loaders-textloader"></a>
+
 ## `langchain_community.document_loaders.TextLoader`
 
 **Import**
@@ -582,6 +1009,8 @@ print(docs[0].page_content[:200])
 ```
 
 ---
+
+<a id="langchain-community-document-loaders-pypdfloader"></a>
 
 ## `langchain_community.document_loaders.PyPDFLoader`
 
@@ -608,6 +1037,8 @@ print(pages[0].page_content[:200])
 
 ---
 
+<a id="langchain-community-document-loaders-webbaseloader"></a>
+
 ## `langchain_community.document_loaders.WebBaseLoader`
 
 **Import**
@@ -631,6 +1062,8 @@ print(docs[0].page_content[:300])
 ```
 
 ---
+
+<a id="langchain-community-vectorstores-chroma"></a>
 
 ## `langchain_community.vectorstores.Chroma`
 
@@ -658,6 +1091,8 @@ results = db.similarity_search("What is an agent?", k=3)
 ```
 
 ---
+
+<a id="langchain-community-vectorstores-faiss"></a>
 
 ## `langchain_community.vectorstores.FAISS`
 
@@ -689,6 +1124,8 @@ retriever = loaded.as_retriever()
 
 ---
 
+<a id="langchain-community-chat-message-histories-chatmessagehistory"></a>
+
 ## `langchain_community.chat_message_histories.ChatMessageHistory`
 
 **Import**
@@ -713,6 +1150,8 @@ print(history.messages)
 ```
 
 ---
+
+<a id="langchain-text-splitters-charactertextsplitter"></a>
 
 ## `langchain_text_splitters.CharacterTextSplitter`
 
@@ -742,6 +1181,8 @@ print(len(chunks))
 
 ---
 
+<a id="langchain-text-splitters-recursivecharactertextsplitter"></a>
+
 ## `langchain_text_splitters.RecursiveCharacterTextSplitter`
 
 **Import**
@@ -768,6 +1209,8 @@ chunks = splitter.split_documents(docs)
 
 ---
 
+<a id="langchain-openai-chatopenai"></a>
+
 ## `langchain_openai.ChatOpenAI`
 
 **Import**
@@ -790,6 +1233,8 @@ print(llm.invoke("Say hello in one sentence.").content)
 ```
 
 ---
+
+<a id="langchain-openai-openaiembeddings"></a>
 
 ## `langchain_openai.OpenAIEmbeddings`
 
@@ -815,6 +1260,8 @@ print(len(vector))
 
 ---
 
+<a id="langchain-google-genai-chatgooglegenerativeai"></a>
+
 ## `langchain_google_genai.ChatGoogleGenerativeAI`
 
 **Import**
@@ -837,6 +1284,8 @@ print(llm.invoke("Explain embeddings in one sentence.").content)
 ```
 
 ---
+
+<a id="langchain-groq-chatgroq"></a>
 
 ## `langchain_groq.ChatGroq`
 
@@ -861,6 +1310,8 @@ print(llm.invoke("What is a prompt template?").content)
 
 ---
 
+<a id="langchain-ollama-chatollama"></a>
+
 ## `langchain_ollama.ChatOllama`
 
 **Import**
@@ -883,6 +1334,8 @@ print(llm.invoke("Explain RAG in one sentence.").content)
 ```
 
 ---
+
+<a id="langchain-ollama-ollamaembeddings"></a>
 
 ## `langchain_ollama.OllamaEmbeddings`
 
@@ -907,6 +1360,8 @@ print(len(vector))
 ```
 
 ---
+
+<a id="langchain-huggingface-huggingfaceembeddings"></a>
 
 ## `langchain_huggingface.HuggingFaceEmbeddings`
 
@@ -934,6 +1389,8 @@ print(len(vector))
 
 ---
 
+<a id="langchain-chroma-chroma"></a>
+
 ## `langchain_chroma.Chroma`
 
 **Import**
@@ -960,6 +1417,332 @@ print(db.similarity_search("LangChain vector store", k=2))
 ```
 
 ---
+
+<a id="langgraph-graph-stategraph"></a>
+
+## `langgraph.graph.StateGraph`
+
+**Import**
+
+```python
+from langgraph.graph import StateGraph
+```
+
+**Used in:** `8_LangGraph-Intro/simplegraph.py`, `8_LangGraph-Intro/chatbot.py`, `10_LangGrapph_Component`, `12_Different Workflows In LangGraph`, `13_Human_in_the_loop`, `14_RAG With LangGraph`
+
+**Use case:** The builder for a LangGraph workflow. You pass a state schema (`TypedDict`, `dataclass`, Pydantic model, or `MessagesState`), add nodes, add edges, then `compile()` to get a runnable graph. `11_debugging_langGraph/openAi.py` imports the same class from `langgraph.graph.state`.
+
+**Example**
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph import END, START, StateGraph
+
+class State(TypedDict):
+    graph_info: str
+
+def start_play(state: State) -> dict:
+    return {"graph_info": state["graph_info"] + " I am planning to play"}
+
+builder = StateGraph(State)
+builder.add_node("start_play", start_play)
+builder.add_edge(START, "start_play")
+builder.add_edge("start_play", END)
+graph = builder.compile()
+print(graph.invoke({"graph_info": "Start."}))
+```
+
+---
+
+<a id="langgraph-graph-start"></a>
+
+## `langgraph.graph.START`
+
+**Import**
+
+```python
+from langgraph.graph import START
+```
+
+**Used in:** every LangGraph lesson that builds a `StateGraph`
+
+**Use case:** The virtual entry point. `add_edge(START, "first_node")` tells the graph which real node runs first. `START` is not a node you define.
+
+**Example**
+
+```python
+from langgraph.graph import START, StateGraph
+
+builder = StateGraph(State)
+builder.add_node("assistant", assistant)
+builder.add_edge(START, "assistant")
+```
+
+---
+
+<a id="langgraph-graph-end"></a>
+
+## `langgraph.graph.END`
+
+**Import**
+
+```python
+from langgraph.graph import END
+```
+
+**Used in:** every LangGraph lesson that builds a `StateGraph`
+
+**Use case:** The virtual stop point. An edge to `END` finishes the run. Conditional routers return `END` when the model has a final answer and should not call another tool.
+
+**Example**
+
+```python
+from langgraph.graph import END, StateGraph
+
+builder.add_edge("assistant", END)
+# or, inside a router:
+def route(state):
+    if state["messages"][-1].tool_calls:
+        return "tools"
+    return END
+```
+
+---
+
+<a id="langgraph-graph-messagesstate"></a>
+
+## `langgraph.graph.MessagesState`
+
+**Import**
+
+```python
+from langgraph.graph import MessagesState
+```
+
+**Used in:** `13_Human_in_the_loop/Humanintheloop.py`, `13_Human_in_the_loop/01_breakpoints_and_approval.py` through `05_time_travel_and_replay.py`
+
+**Use case:** A built-in state schema whose only field is `messages`, already wired to the `add_messages` reducer. Use it for a chatbot or tool agent so you do not declare that `TypedDict` yourself.
+
+**Example**
+
+```python
+from langgraph.graph import MessagesState, START, StateGraph
+from langgraph.prebuilt import ToolNode
+
+def assistant(state: MessagesState) -> dict:
+    response = llm_with_tools.invoke(state["messages"])
+    return {"messages": [response]}
+
+builder = StateGraph(MessagesState)
+builder.add_node("assistant", assistant)
+builder.add_node("tools", ToolNode(tools))
+builder.add_edge(START, "assistant")
+```
+
+---
+
+<a id="langgraph-graph-message-add-messages"></a>
+
+## `langgraph.graph.message.add_messages`
+
+**Import**
+
+```python
+from langgraph.graph.message import add_messages
+```
+
+**Used in:** `8_LangGraph-Intro/chatbot.py`, `10_LangGrapph_Component/04_state_reducers/main.py`, `10_LangGrapph_Component/06_react_agent/main.py`, `11_debugging_langGraph/openAi.py`, `14_RAG With LangGraph/1-AgenticRAG.py`
+
+**Use case:** Reducer for a messages list. A node that returns `{"messages": [response]}` appends that message instead of replacing the whole list. It also updates a message in place when the id matches.
+
+**Example**
+
+```python
+from typing import Annotated
+from typing_extensions import TypedDict
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+```
+
+---
+
+<a id="langgraph-prebuilt-toolnode"></a>
+
+## `langgraph.prebuilt.ToolNode`
+
+**Import**
+
+```python
+from langgraph.prebuilt import ToolNode
+```
+
+**Used in:** `10_LangGrapph_Component/06_react_agent/main.py`, `10_LangGrapph_Component/09_chain_with_tools/main.py`, `11_debugging_langGraph/openAi.py`, `13_Human_in_the_loop`, `14_RAG With LangGraph/1-AgenticRAG.py`
+
+**Use case:** A prebuilt node that reads tool calls on the last `AIMessage`, runs the matching Python functions, and writes `ToolMessage` results back into state. You pass the same tool list you bound to the model.
+
+**Example**
+
+```python
+from langgraph.prebuilt import ToolNode
+
+builder.add_node("tools", ToolNode([add, multiply]))
+builder.add_edge("tools", "assistant")
+```
+
+---
+
+<a id="langgraph-prebuilt-tools-condition"></a>
+
+## `langgraph.prebuilt.tools_condition`
+
+**Import**
+
+```python
+from langgraph.prebuilt import tools_condition
+```
+
+**Used in:** `10_LangGrapph_Component/06_react_agent/main.py`, `10_LangGrapph_Component/09_chain_with_tools/main.py`, `13_Human_in_the_loop`, `14_RAG With LangGraph/1-AgenticRAG.py`
+
+**Use case:** A prebuilt router. If the last message has `tool_calls`, it sends the graph to the node named `"tools"`. Otherwise it sends the graph to `END`. Your tools node must be named `tools` for this function to find it.
+
+**Example**
+
+```python
+from langgraph.graph import START, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+
+builder = StateGraph(State)
+builder.add_node("assistant", assistant)
+builder.add_node("tools", ToolNode(tools))
+builder.add_edge(START, "assistant")
+builder.add_conditional_edges("assistant", tools_condition)
+builder.add_edge("tools", "assistant")
+```
+
+---
+
+<a id="langgraph-checkpoint-memory-memorysaver"></a>
+
+## `langgraph.checkpoint.memory.MemorySaver`
+
+**Import**
+
+```python
+from langgraph.checkpoint.memory import MemorySaver
+```
+
+**Used in:** `10_LangGrapph_Component/07_agent_memory_checkpointer/main.py`, `10_LangGrapph_Component/12_simple_chatbot/main.py`, `10_LangGrapph_Component/13_streaming/main.py`, `13_Human_in_the_loop`
+
+**Use case:** Checkpointer that stores each super-step in RAM, keyed by `thread_id`. Pass the same config on later calls to continue the conversation, pause on `interrupt_before`, or replay a checkpoint. State is gone when the process stops. `InMemorySaver` is the newer name for the same idea.
+
+**Example**
+
+```python
+from langgraph.checkpoint.memory import MemorySaver
+
+graph = builder.compile(
+    checkpointer=MemorySaver(),
+    interrupt_before=["tools"],
+)
+config = {"configurable": {"thread_id": "chat-1"}}
+graph.invoke({"messages": [("user", "What is 2 + 2?")]}, config)
+```
+
+---
+
+<a id="langgraph-types-send"></a>
+
+## `langgraph.types.Send`
+
+**Import**
+
+```python
+from langgraph.types import Send
+```
+
+**Used in:** `12_Different Workflows In LangGraph/114_orchestrator_worker_langgraph.py`
+
+**Use case:** Start one copy of a node per item, at runtime. A conditional edge returns a list of `Send(node_name, payload)` and LangGraph runs those copies in parallel. The payload is the state that copy sees, which can be smaller than the parent state.
+
+**Example**
+
+```python
+from langgraph.types import Send
+
+def assign_workers(state):
+    return [
+        Send("worker", {"objective": state["objective"], "task": task})
+        for task in state["plan"]
+    ]
+
+builder.add_conditional_edges("orchestrator", assign_workers, ["worker"])
+```
+
+---
+
+<a id="langgraph-types-interrupt"></a>
+
+## `langgraph.types.interrupt`
+
+**Import**
+
+```python
+from langgraph.types import interrupt
+```
+
+**Used in:** `13_Human_in_the_loop/06_modern_dynamic_interrupt.py`
+
+**Use case:** Pause from inside a node, and only when your own condition is true. The value you pass is shown to the caller. When the graph resumes, `interrupt(...)` returns whatever you passed to `Command(resume=...)`. The graph must be compiled with a checkpointer.
+
+**Example**
+
+```python
+from langgraph.types import interrupt
+
+def human_approval_guard(state):
+    if state["amount"] < 1000:
+        return {"status": "approved"}
+    decision = interrupt({
+        "prompt": f"Approve ${state['amount']} to {state['recipient']}?",
+        "amount": state["amount"],
+    })
+    if decision.get("approved"):
+        return {"status": "approved"}
+    return {"status": "rejected"}
+```
+
+---
+
+<a id="langgraph-types-command"></a>
+
+## `langgraph.types.Command`
+
+**Import**
+
+```python
+from langgraph.types import Command
+```
+
+**Used in:** `7_Langchain Version V1/6-middleWare.py`, `13_Human_in_the_loop/06_modern_dynamic_interrupt.py`
+
+**Use case:** A control object you pass back into `invoke` or `stream` to resume a paused graph. `Command(resume=value)` becomes the return value of the `interrupt()` that paused. The same `thread_id` is required. Human-in-the-loop middleware resumes with a decision payload in this object.
+
+**Example**
+
+```python
+from langgraph.types import Command
+
+config = {"configurable": {"thread_id": "transfer-1"}}
+graph.invoke({"sender": "Ada", "recipient": "Grace", "amount": 5000}, config)
+graph.invoke(Command(resume={"approved": True, "notes": "Looks fine."}), config)
+```
+
+---
+
+<a id="langgraph-checkpoint-memory-inmemorysaver"></a>
 
 ## `langgraph.checkpoint.memory.InMemorySaver`
 
@@ -994,43 +1777,5 @@ agent.invoke(
 
 ---
 
-## Quick index
 
-| Import | Package | Main job |
-| --- | --- | --- |
-| `langchain` | `langchain` | Check the installed version |
-| `create_agent` | `langchain.agents` | Build a v1 tool-calling agent |
-| `SummarizationMiddleware` | `langchain.agents.middleware` | Summarize long chats |
-| `ToolStrategy` | `langchain.agents.structured_output` | Agent replies as a schema |
-| `init_chat_model` | `langchain.chat_models` | One call for any provider |
-| `tool` | `langchain.tools` | Turn a function into a tool |
-| `create_retrieval_chain` | `langchain.chains` | RAG: retrieve, then answer |
-| `create_stuff_documents_chain` | `langchain.chains.combine_documents` | Put chunks into one prompt |
-| `HumanMessage` | `langchain_core.messages` | User turn |
-| `SystemMessage` | `langchain_core.messages` | Role and rules |
-| `AIMessage` | `langchain_core.messages` | Assistant turn |
-| `ToolMessage` | `langchain_core.messages` | Tool result sent back to the model |
-| `trim_messages` | `langchain_core.messages` | Cut history to a token budget |
-| `ChatPromptTemplate` | `langchain_core.prompts` | Prompt with placeholders |
-| `MessagesPlaceholder` | `langchain_core.prompts` | Slot for chat history |
-| `StrOutputParser` | `langchain_core.output_parsers` | Message to plain string |
-| `BaseChatMessageHistory` | `langchain_core.chat_history` | History interface |
-| `RunnablePassthrough` | `langchain_core.runnables` | Pass or add keys in LCEL |
-| `RunnableWithMessageHistory` | `langchain_core.runnables.history` | Auto load and save history |
-| `TextLoader` | `langchain_community.document_loaders` | Load a text file |
-| `PyPDFLoader` | `langchain_community.document_loaders` | Load a PDF |
-| `WebBaseLoader` | `langchain_community.document_loaders` | Load a web page |
-| `Chroma` | `langchain_community.vectorstores` | Older Chroma vector store |
-| `FAISS` | `langchain_community.vectorstores` | Local FAISS index |
-| `ChatMessageHistory` | `langchain_community.chat_message_histories` | In-memory session history |
-| `CharacterTextSplitter` | `langchain_text_splitters` | Split on one separator |
-| `RecursiveCharacterTextSplitter` | `langchain_text_splitters` | Split by paragraphs, then lines |
-| `ChatOpenAI` | `langchain_openai` | OpenAI chat model |
-| `OpenAIEmbeddings` | `langchain_openai` | OpenAI embeddings |
-| `ChatGoogleGenerativeAI` | `langchain_google_genai` | Gemini chat model |
-| `ChatGroq` | `langchain_groq` | Groq chat model |
-| `ChatOllama` | `langchain_ollama` | Local Ollama chat model |
-| `OllamaEmbeddings` | `langchain_ollama` | Local Ollama embeddings |
-| `HuggingFaceEmbeddings` | `langchain_huggingface` | Local Hugging Face embeddings |
-| `Chroma` | `langchain_chroma` | Current Chroma package |
-| `InMemorySaver` | `langgraph.checkpoint.memory` | Remember agent state by thread id |
+[Back to contents](#contents)

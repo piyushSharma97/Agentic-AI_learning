@@ -1,57 +1,38 @@
-# 🦙 LlamaIndex Learning Module
+# LlamaIndex
 
-A structured, beginner-to-advanced hands-on guide for mastering **LlamaIndex** (v0.10+) for Retrieval-Augmented Generation (RAG) and Agentic Data Workflows.
+Five lessons. Each file is already one topic, so they stay side by side instead of moving into extra folders. `data/company_info.txt` is the handbook used by lessons 01, 04, and 05.
 
----
+`config.py` loads the repo-root `.env` before LlamaIndex starts. Run a file from any working directory.
 
-## 📦 Prerequisites & Installation
+Every example inside a lesson is called from `main()`. Comment that call to skip it. `run_all.py` calls every lesson.
 
-To run the examples in this folder, install the required packages into your virtual environment:
-
-```bash
-# Core LlamaIndex
-pip install llama-index
-
-# Providers (install based on your API keys)
-pip install llama-index-llms-openai llama-index-embeddings-openai
-pip install llama-index-llms-groq
+```powershell
+python "9_LlamaIndex/01_quickstart_rag.py"
+python "9_LlamaIndex/run_all.py"
 ```
 
-Ensure your root `.env` file contains your API keys:
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-GROQ_API_KEY=your_groq_api_key_here
-```
+## Lessons
 
----
+| File | Topic | What runs |
+| --- | --- | --- |
+| `01_quickstart_rag.py` | Build an index and ask it a question | In-memory documents, then the handbook file |
+| `02_documents_and_nodes.py` | Document versus node | Metadata, sentence splitting, an index built from nodes |
+| `03_settings_and_models.py` | `Settings` | Defaults, then OpenAI, then Groq, each followed by one query |
+| `04_retrieval_and_chat_engine.py` | Three ways to ask | Retriever, one-shot query engine, multi-turn chat engine |
+| `05_agent_with_tools.py` | Agent with tools | Handbook search, then handbook plus the budget calculator |
 
-## 🗂️ Module Curriculum
+## Review of each file
 
-| File | Concept | What You Will Learn |
-| :--- | :--- | :--- |
-| **[`01_quickstart_rag.py`](./01_quickstart_rag.py)** | **RAG Fundamentals** | • 5 stages of RAG (Loading, Chunking, Indexing, Retrieval, Synthesis)<br>• In-memory `Document` creation<br>• `SimpleDirectoryReader` for files<br>• Inspecting retrieved source chunks and similarity scores |
-| **[`02_documents_and_nodes.py`](./02_documents_and_nodes.py)** | **Data Architecture** | • `Document` vs. `Node` distinction<br>• `SentenceSplitter` chunking strategy<br>• Managing `chunk_size` and `chunk_overlap`<br>• Parent-child node relationships and metadata filtering |
-| **[`03_settings_and_models.py`](./03_settings_and_models.py)** | **Modern Configuration** | • Modern `Settings` global object (replacing legacy `ServiceContext`)<br>• Swapping LLMs (OpenAI, Groq, Ollama)<br>• Swapping embedding models (OpenAI, HuggingFace)<br>• Setting global chunking parameters |
-| **[`04_retrieval_and_chat_engine.py`](./04_retrieval_and_chat_engine.py)** | **Retrievers & Conversational RAG** | • Pure `Retriever` (semantic search without LLM generation)<br>• `QueryEngine` (one-shot Q&A)<br>• `ChatEngine` (multi-turn conversation with memory and query condensation) |
-| **[`05_agent_with_tools.py`](./05_agent_with_tools.py)** | **Agentic RAG** | • Wrapping RAG pipelines into `QueryEngineTool`<br>• Wrapping custom Python functions into `FunctionTool`<br>• Building a `ReActAgent` that reasons across documents and actions |
+**01_quickstart_rag.py.** The five RAG stages are clear, and the two examples were already functions. Example 2 was commented out, so a normal run never read `data/`. Both examples now run. The directory path is taken from the file location, so it still finds `data/` when you launch the script from the repo root.
 
----
+**02_documents_and_nodes.py.** Examples 1 and 2 do not call a model. They print a document and the chunks. Example 3 embeds those chunks and asks one question. It was commented out. It now runs with the others.
 
-## 🧠 Mental Model: LangChain vs. LlamaIndex
+**03_settings_and_models.py.** `Settings` is the current way to set the global LLM, embedding model, and chunk size. The Groq example used `llama-3.3-70b-versatile`, which Groq no longer serves. It now uses `GROQ_MODEL` from `.env`, or `openai/gpt-oss-120b`. OpenAI is configured and queried first. Groq is then configured and queried, so you can see the chat model change while the embedding model stays OpenAI.
 
-```
-┌────────────────────────────────────────────────────────┐
-│                      YOUR APPLICATION                  │
-├───────────────────────────┬────────────────────────────┤
-│         LANGCHAIN         │         LLAMAININDEX       │
-│  (Orchestration & Logic)  │  (Data & Retrieval Engine) │
-├───────────────────────────┼────────────────────────────┤
-│ • Multi-agent workflows   │ • Data connectors (100+)   │
-│ • State machines (LangGraph)│ • Smart chunking & parsing │
-│ • Custom prompt chaining  │ • High-precision indexing  │
-│ • Broad ecosystem tools   │ • Advanced retrieval & RAG │
-└───────────────────────────┴────────────────────────────┘
-```
+**04_retrieval_and_chat_engine.py.** One index is shared by three examples. The retriever does not write an answer. The query engine answers one question and forgets it, which is why "Where was she located?" has no prior turn. The chat engine keeps that turn. The query and chat examples were commented out. All three now run.
 
-They are complementary: you can use **LlamaIndex** to index and query your internal documentation, and expose it as a tool inside a **LangGraph / LangChain** agent.
+**05_agent_with_tools.py.** `ReActAgent.from_tools()` and `agent.chat()` are the old API. This install builds the agent with `ReActAgent(tools=..., llm=...)` and runs it with `agent.run(user_msg=...)`. The two tasks are separate functions, and `main()` calls both. The calculator description tells the model when a team-size question should use the function instead of only the handbook.
 
+## What I did not split further
+
+A folder per file would only add a path change. The topic boundary is already the file. Shared handbook text stays in `data/`.
