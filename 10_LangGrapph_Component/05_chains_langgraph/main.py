@@ -69,6 +69,10 @@ def critique_content(state: EditorialChainState) -> dict:
     """Stage 2: Reviews the draft and provides actionable editorial feedback."""
     print("[Node 2: Critic] Reviewing draft for clarity and audience resonance...")
     llm = get_llm()
+    # from_messages is a class method that creates a ChatPromptTemplate from a list of messages.
+    # The list of messages is a list of tuples, where the first element is the role of the message and the second element is the content of the message.
+    # The role is a string that represents the role of the message.
+    # The content is a string that represents the content of the message.
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are an editorial reviewer. Provide 1 actionable improvement tip."),
         ("human", "Audience: {target_audience}\nDraft:\n{draft}")
@@ -126,9 +130,18 @@ def analyze_technology(state: DualAnalysisState) -> dict:
     """Parallel Worker A: Analyzes technical moat and IP."""
     print("[Parallel Branch A: Tech Analyst] Evaluating technology stack and IP...")
     llm = get_llm()
+    # from_template is a class method that creates a ChatPromptTemplate from a template string.
+    # The template string is a string that contains the template for the prompt.
     prompt = ChatPromptTemplate.from_template("Assess the technological moat of {company} in 1 sentence.")
     res = (prompt | llm | StrOutputParser()).invoke({"company": state["company_name"]})
     return {"tech_analysis": res}
+
+# from_template vs from_messages
+# from_template is used when the prompt is a template string.
+# from_messages is used when the prompt is a list of messages.
+# from_template is more convenient when the prompt is a simple string.
+# from_messages is more flexible when the prompt is a complex string.
+
 
 
 def analyze_market(state: DualAnalysisState) -> dict:
@@ -184,30 +197,41 @@ def build_parallel_chain_graph():
 # ===========================================================================
 def main():
     def demo():
-        print("=== 1. Sequential Chain: Draft -> Critique -> Polish ===")
-        seq_graph = build_sequential_chain_graph()
-        print_mermaid(seq_graph, "Sequential Chain Topology")
-        seq_res = seq_graph.invoke({
-            "topic": "Zero-Knowledge Proofs in Blockchain",
-            "target_audience": "Undergraduate Computer Science Students",
-            "draft": "",
-            "critique": "",
-            "polished_version": ""
-        })
-        print(f"Final Polished Deliverable:\n{seq_res['polished_version'].strip()}\n")
-
-        print("=== 2. Parallel Fan-Out / Fan-In Workflow ===")
-        par_graph = build_parallel_chain_graph()
-        print_mermaid(par_graph, "Parallel Fan-Out / Fan-In Topology")
-        par_res = par_graph.invoke({
-            "company_name": "NVIDIA",
-            "tech_analysis": "",
-            "market_analysis": "",
-            "executive_synthesis": ""
-        })
-        print(f"\nFinal Executive Memo:\n{par_res['executive_synthesis'].strip()}\n")
-
+        # Test Case 1: Sequential Chain
+        # run_sequential_chain()
+        
+        # Test Case 2: Parallel Fan-Out / Fan-In Workflow
+        run_parallel_chain()
+    # End of demo function
+    
     safe_run("Chains and Multi-Stage Workflows in LangGraph", demo)
+
+
+def run_sequential_chain():
+    print("=== 1. Sequential Chain: Draft -> Critique -> Polish ===")
+    seq_graph = build_sequential_chain_graph()
+    print_mermaid(seq_graph, "Sequential Chain Topology")
+    seq_res = seq_graph.invoke({
+        "topic": "Zero-Knowledge Proofs in Blockchain",
+        "target_audience": "Undergraduate Computer Science Students",
+        "draft": "",
+        "critique": "",
+        "polished_version": ""
+    })
+    print(f"Final Polished Deliverable:\n{seq_res['polished_version'].strip()}\n")
+
+
+def run_parallel_chain():
+    print("=== 2. Parallel Fan-Out / Fan-In Workflow ===")
+    par_graph = build_parallel_chain_graph()
+    print_mermaid(par_graph, "Parallel Fan-Out / Fan-In Topology")
+    par_res = par_graph.invoke({
+        "company_name": "NVIDIA",
+        "tech_analysis": "",
+        "market_analysis": "",
+        "executive_synthesis": ""
+    })
+    print(f"\nFinal Executive Memo:\n{par_res['executive_synthesis'].strip()}\n")
 
 
 if __name__ == "__main__":

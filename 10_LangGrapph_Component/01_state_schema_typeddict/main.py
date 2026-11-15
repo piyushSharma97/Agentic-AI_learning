@@ -188,7 +188,7 @@ def main():
 
         # Test Case 1: Player explicitly chose cricket
         print("--- Test 1: Player with Explicit Game Preference ('cricket') ---")
-        result1 = graph.invoke({"name": "Krish", "game": "cricket", "status": "Initiating"})
+        result1 = graph.invoke({"name": "Piyush", "game": "cricket", "status": "Initiating"})
         print(f"Final State:\n  Name: {result1['name']}\n  Game: {result1['game']}\n  Status: {result1['status']}\n")
 
         # Test Case 2: Player explicitly chose badminton

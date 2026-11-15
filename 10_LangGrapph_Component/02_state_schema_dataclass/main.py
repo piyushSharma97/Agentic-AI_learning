@@ -176,7 +176,7 @@ def main():
 
         # Test Case 1: Invoking with a Dataclass instance
         print("--- Test 1: Invoking with a Dataclass Instance ---")
-        initial_state = PlayerDataClassState(name="Krish", game="cricket")
+        initial_state = PlayerDataClassState(name="Piyush", game="cricket")
         result1 = graph.invoke(initial_state)
 
         # Handling dictionary return representation

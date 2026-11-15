@@ -190,15 +190,15 @@ def main():
         print_mermaid(agent, "ReAct Agent Graph Topology (with ToolNode Cycle)")
 
         # Query 1: Arithmetic requiring multi-step tool calls
-        run_and_print_trace(
-            agent,
-            "Add 5 plus 5, and then multiply that result by 10."
-        )
+        # run_and_print_trace(
+        #     agent,
+        #     "Add 345 plus 435, and then multiply that result by 10 and divide by 6."
+        # )
 
         # Query 2: Knowledge retrieval tool call
         run_and_print_trace(
             agent,
-            "What is 'Attention Is All You Need' and what model did it introduce?"
+            "what is India's capital ?"
         )
 
     safe_run("LangGraph ReAct Agent Architecture", demo)
@@ -206,6 +206,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    
 
 
 # ============================================================
